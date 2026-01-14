@@ -24,7 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBackIos
-import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -44,11 +44,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fadhilmanfa.pingo.ui.theme.GreenSecure
+import coil.compose.AsyncImage
 import com.fadhilmanfa.pingo.ui.theme.GreyBorder
 import com.fadhilmanfa.pingo.ui.theme.Secondary
 import com.fadhilmanfa.pingo.ui.theme.TextSecondary
@@ -60,6 +61,16 @@ private fun extractDomain(url: String): String {
         domain.removePrefix("www.")
     } catch (e: Exception) {
         url
+    }
+}
+
+private fun getFaviconUrl(url: String): String {
+    return try {
+        val uri = java.net.URI(url)
+        val domain = uri.host ?: return ""
+        "https://www.google.com/s2/favicons?domain=$domain&sz=64"
+    } catch (e: Exception) {
+        ""
     }
 }
 
@@ -85,6 +96,7 @@ fun NavBar(
     onSwipeDownToMoveBottom: () -> Unit = {}
 ) {
     val domainName = remember(currentUrl) { extractDomain(currentUrl) }
+    val faviconUrl = remember(currentUrl) { getFaviconUrl(currentUrl) }
     val navBarInteractionSource = remember { MutableInteractionSource() }
     val isNavBarPressed by navBarInteractionSource.collectIsPressedAsState()
     
@@ -171,6 +183,7 @@ fun NavBar(
                     UrlBarDisplay(
                         modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
                         text = domainName,
+                        faviconUrl = faviconUrl,
                         isLoading = isLoading,
                         onClick = onUrlBarTap,
                         enabled = !isCollapsed // PENTING: Matikan klik internal jika collapsed
@@ -197,7 +210,7 @@ fun NavBar(
                         .graphicsLayer { alpha = collapsedAlpha },
                     contentAlignment = Alignment.Center
                 ) {
-                    CollapsedUrlDisplay(domainName = domainName, isLoading = isLoading)
+                    CollapsedUrlDisplay(domainName = domainName, faviconUrl = faviconUrl, isLoading = isLoading)
                 }
 
                 // LAPISAN KLIK KHUSUS COLLAPSED (PENTING!)
@@ -285,6 +298,7 @@ private fun TabCountButton(count: Int, onClick: () -> Unit, enabled: Boolean = t
 private fun UrlBarDisplay(
     modifier: Modifier = Modifier,
     text: String,
+    faviconUrl: String,
     isLoading: Boolean,
     onClick: () -> Unit,
     enabled: Boolean = true
@@ -304,24 +318,41 @@ private fun UrlBarDisplay(
             if (isLoading) {
                 LoadingIndicator(Modifier.size(18.dp), color = Secondary)
             } else {
-                Icon(Icons.Rounded.Lock, null, tint = GreenSecure, modifier = Modifier.size(14.dp))
+                AsyncImage(
+                    model = faviconUrl,
+                    contentDescription = "Website icon",
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    contentScale = ContentScale.Fit
+                )
             }
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text, fontSize = 13.sp, color = TextSecondary, maxLines = 1, modifier = Modifier.weight(1f))
+            Text(text, fontSize = 13.sp, color = TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun CollapsedUrlDisplay(domainName: String, isLoading: Boolean) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+private fun CollapsedUrlDisplay(domainName: String, faviconUrl: String, isLoading: Boolean) {
+    Row(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         if (isLoading) {
             LoadingIndicator(Modifier.size(14.dp), color = Secondary)
         } else {
-            Icon(Icons.Rounded.Lock, null, tint = GreenSecure, modifier = Modifier.size(10.dp))
+            AsyncImage(
+                model = faviconUrl,
+                contentDescription = "Website icon",
+                modifier = Modifier
+                    .size(14.dp)
+                    .clip(RoundedCornerShape(3.dp)),
+                contentScale = ContentScale.Fit
+            )
         }
         Spacer(modifier = Modifier.width(6.dp))
-        Text(domainName, fontSize = 12.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
+        Text(domainName, fontSize = 12.sp, color = TextSecondary, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }

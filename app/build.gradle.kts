@@ -65,6 +65,9 @@ dependencies {
     implementation(libs.retrofit.gson)
     implementation(libs.okhttp.logging)
 
+    // Image Loading (for favicon)
+    implementation(libs.coil.compose)
+
     debugImplementation(libs.androidx.ui.tooling)
 
     testImplementation(libs.junit)

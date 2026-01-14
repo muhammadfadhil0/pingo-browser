@@ -559,6 +559,11 @@ fun BrowsingMainPage() {
                 isVisible = isUrlEditingMode,
                 statusBarHeight = statusBarPaddingPx,
                 onUrlSubmitted = { url ->
+                    // Force loader to show immediately when URL is clicked/submitted
+                    val idx = tabs.indexOfFirst { it.id == activeTab.id }
+                    if (idx >= 0) {
+                        tabs[idx] = tabs[idx].copy(isLoading = true, progress = 0f)
+                    }
                     webViewInstances[activeTab.id]?.loadUrl(url)
                     isUrlEditingMode = false
                 },
@@ -659,6 +664,11 @@ fun BrowsingMainPage() {
                 historyItems = historyItems,
                 onBack = { showHistory = false },
                 onUrlClick = { url ->
+                    // Force loader to show immediately when URL is clicked
+                    val idx = tabs.indexOfFirst { it.id == activeTab.id }
+                    if (idx >= 0) {
+                        tabs[idx] = tabs[idx].copy(isLoading = true, progress = 0f)
+                    }
                     webViewInstances[activeTab.id]?.loadUrl(url)
                     showHistory = false
                 },
