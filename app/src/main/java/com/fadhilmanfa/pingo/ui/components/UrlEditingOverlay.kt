@@ -23,9 +23,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -58,6 +59,7 @@ import com.fadhilmanfa.pingo.ui.theme.TextPrimary
 import com.fadhilmanfa.pingo.ui.theme.TextSecondary
 import kotlinx.coroutines.delay
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun UrlEditingOverlay(
     currentUrl: String,
@@ -139,12 +141,19 @@ fun UrlEditingOverlay(
                         .padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Search,
-                        contentDescription = "Search",
-                        tint = Secondary,
-                        modifier = Modifier.size(22.dp)
-                    )
+                    if (isLoading) {
+                        LoadingIndicator(
+                            modifier = Modifier.size(22.dp),
+                            color = Secondary
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Rounded.Search,
+                            contentDescription = "Search",
+                            tint = Secondary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
 
                     Spacer(modifier = Modifier.width(12.dp))
 
@@ -184,15 +193,6 @@ fun UrlEditingOverlay(
                             }
                         }
                     )
-
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                            color = Secondary
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
 
                     // Close button
                     IconButton(

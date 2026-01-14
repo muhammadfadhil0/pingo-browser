@@ -25,7 +25,7 @@ class GroqRepository(private val apiKey: String) {
         apiService = retrofit.create(GroqApiService::class.java)
     }
 
-    suspend fun getAiResponse(prompt: String, model: String = "mixtral-8x7b-32768"): String {
+    suspend fun getAiResponse(prompt: String, model: String = "openai/gpt-oss-120b"): String {
         return try {
             val request = ChatRequest(
                 model = model,

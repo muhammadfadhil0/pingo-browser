@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.History
@@ -42,6 +43,7 @@ fun MenuBottomSheet(
     onDismiss: () -> Unit,
     onRefresh: () -> Unit,
     onForward: () -> Unit,
+    onPingoAI: () -> Unit = {},
     onBookmark: () -> Unit = {},
     onHistory: () -> Unit = {},
     onDownloads: () -> Unit = {},
@@ -74,6 +76,15 @@ fun MenuBottomSheet(
             ) {}
 
             Spacer(modifier = Modifier.height(24.dp))
+
+            MenuItem(
+                icon = Icons.Rounded.AutoAwesome,
+                label = "Pingo AI",
+                onClick = {
+                    onDismiss()
+                    onPingoAI()
+                }
+            )
 
             MenuItem(
                 icon = Icons.Rounded.Refresh,

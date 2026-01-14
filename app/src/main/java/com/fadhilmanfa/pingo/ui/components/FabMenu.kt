@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.History
@@ -67,31 +68,44 @@ fun FabMenuOverlay(
     modifier: Modifier = Modifier,
     expanded: Boolean,
     canGoForward: Boolean,
+    isAtTop: Boolean = false,
     onToggle: () -> Unit,
     onRefresh: () -> Unit,
     onForward: () -> Unit,
+    onPingoAI: () -> Unit = {},
     onBookmark: () -> Unit = {},
     onHistory: () -> Unit = {},
     onDownloads: () -> Unit = {},
     onSettings: () -> Unit = {}
 ) {
-    val menuItems = listOf(
+    // When at top, reverse the order so items appear correctly
+    val baseMenuItems = listOf(
         FabMenuItem(Icons.Rounded.Settings, "Pengaturan", { onSettings(); onToggle() }),
         FabMenuItem(Icons.Rounded.Download, "Unduhan", { onDownloads(); onToggle() }),
         FabMenuItem(Icons.Rounded.History, "Riwayat", { onHistory(); onToggle() }),
         FabMenuItem(Icons.Rounded.BookmarkBorder, "Bookmark", { onBookmark(); onToggle() }),
         FabMenuItem(Icons.AutoMirrored.Rounded.ArrowForward, "Maju", { if (canGoForward) { onForward(); onToggle() } }, canGoForward),
-        FabMenuItem(Icons.Rounded.Refresh, "Refresh", { onRefresh(); onToggle() })
+        FabMenuItem(Icons.Rounded.Refresh, "Refresh", { onRefresh(); onToggle() }),
+        FabMenuItem(Icons.Rounded.AutoAwesome, "Pingo AI", { onPingoAI(); onToggle() })
     )
+    
+    val menuItems = if (isAtTop) baseMenuItems.reversed() else baseMenuItems
 
     // Track visibility state for each item
     var visibleItems by remember { mutableStateOf(setOf<Int>()) }
 
     // Staggered animation effect
-    LaunchedEffect(expanded) {
+    LaunchedEffect(expanded, isAtTop) {
         if (expanded) {
-            // Show items one by one from bottom (last item) to top (first item)
-            for (i in menuItems.indices.reversed()) {
+            // Show items one by one with staggered animation
+            val indices = if (isAtTop) {
+                // When at top, animate from top (first item) to bottom (last item)
+                menuItems.indices
+            } else {
+                // When at bottom, animate from bottom (last item) to top (first item)
+                menuItems.indices.reversed()
+            }
+            for (i in indices) {
                 delay(50L) // 50ms delay between each item
                 visibleItems = visibleItems + i
             }
@@ -115,10 +129,14 @@ fun FabMenuOverlay(
 
     Box(
         modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.BottomEnd
+        contentAlignment = if (isAtTop) Alignment.TopEnd else Alignment.BottomEnd
     ) {
         Column(
-            modifier = Modifier.padding(end = 24.dp, bottom = 100.dp),
+            modifier = Modifier.padding(
+                end = 24.dp,
+                top = if (isAtTop) 130.dp else 0.dp,
+                bottom = if (isAtTop) 0.dp else 100.dp
+            ),
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -128,14 +146,14 @@ fun FabMenuOverlay(
                     enter = fadeIn(
                         animationSpec = tween(200)
                     ) + slideInVertically(
-                        initialOffsetY = { it / 2 },
+                        initialOffsetY = { if (isAtTop) -it / 2 else it / 2 },
                         animationSpec = spring(
                             dampingRatio = Spring.DampingRatioMediumBouncy,
                             stiffness = Spring.StiffnessMedium
                         )
                     ),
                     exit = fadeOut(animationSpec = tween(150)) + slideOutVertically(
-                        targetOffsetY = { it / 2 },
+                        targetOffsetY = { if (isAtTop) -it / 2 else it / 2 },
                         animationSpec = tween(150)
                     )
                 ) {
@@ -169,7 +187,7 @@ private fun MenuPill(
     Surface(
         modifier = Modifier
             .scale(scale)
-            .shadow(8.dp, RoundedCornerShape(25.dp))
+            .shadow(3.dp, RoundedCornerShape(25.dp)) // Reduced shadow for performance
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,

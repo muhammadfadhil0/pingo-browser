@@ -3,7 +3,9 @@ package com.fadhilmanfa.pingo.ui.pages
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -21,7 +23,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.AdsClick
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.DarkMode
@@ -37,7 +38,6 @@ import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -51,20 +51,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fadhilmanfa.pingo.ui.theme.Primary
+import com.fadhilmanfa.pingo.data.adblock.AdBlockManager
 import com.fadhilmanfa.pingo.ui.theme.Secondary
 import com.fadhilmanfa.pingo.ui.theme.TextPrimary
 import com.fadhilmanfa.pingo.ui.theme.TextSecondary
 
 @Composable
 fun SettingsPage(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToAdBlocker: () -> Unit
 ) {
+    val context = LocalContext.current
+    val adBlockManager = remember { AdBlockManager.getInstance(context) }
+    
     var pingoAiEnabled by remember { mutableStateOf(true) }
-    var adBlockerEnabled by remember { mutableStateOf(true) }
+    var adBlockerEnabled by remember { mutableStateOf(adBlockManager.isEnabled) }
     var darkModeEnabled by remember { mutableStateOf(false) }
 
     val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -119,7 +124,11 @@ fun SettingsPage(
                     title = "Pemblokir Iklan",
                     subtitle = if (adBlockerEnabled) "Aktif" else "Tidak Aktif",
                     checked = adBlockerEnabled,
-                    onCheckedChange = { adBlockerEnabled = it }
+                    onCheckedChange = { 
+                        adBlockerEnabled = it
+                        adBlockManager.isEnabled = it
+                    },
+                    onClick = onNavigateToAdBlocker
                 )
                 SwitchItem(
                     icon = Icons.Rounded.DarkMode,
@@ -191,7 +200,7 @@ fun SettingsPage(
 }
 
 @Composable
-fun SettingsSection(content: @Composable ColumnScope.() -> Unit) {
+private fun SettingsSection(content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -201,16 +210,18 @@ fun SettingsSection(content: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-fun SwitchItem(
+private fun SwitchItem(
     icon: ImageVector,
     title: String,
     subtitle: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
+    onClick: (() -> Unit)? = null
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -260,7 +271,7 @@ fun SwitchItem(
 }
 
 @Composable
-fun MenuItem(
+private fun MenuItem(
     icon: ImageVector,
     title: String,
     subtitle: String? = null,
@@ -297,5 +308,3 @@ fun MenuItem(
         }
     }
 }
-
-import androidx.compose.layout.ColumnScope

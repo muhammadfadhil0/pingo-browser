@@ -90,11 +90,9 @@ fun AiResponseBottomSheet(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            Text(
-                text = response,
-                fontSize = 15.sp,
-                lineHeight = 22.sp,
-                color = Color.Black
+            MarkdownText(
+                markdown = response,
+                textColor = Color.Black
             )
         }
     }

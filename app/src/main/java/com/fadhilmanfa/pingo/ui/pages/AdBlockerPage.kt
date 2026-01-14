@@ -41,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -49,18 +50,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fadhilmanfa.pingo.data.adblock.AdBlockManager
+import com.fadhilmanfa.pingo.data.adblock.AdBlockStrength
 import com.fadhilmanfa.pingo.ui.theme.Secondary
 import com.fadhilmanfa.pingo.ui.theme.TextPrimary
 import com.fadhilmanfa.pingo.ui.theme.TextSecondary
-
-enum class AdBlockStrength(val title: String, val description: String) {
-    RINGAN("Ringan", "Block berdasarkan daftar domain populer"),
-    SEDANG("Sedang", "Menggunakan metode parsing per halaman web"),
-    KUAT("Kuat", "Full AdBlock Plus filter syntax support (mungkin beberapa halaman web akan rusak)")
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,9 +66,13 @@ fun AdBlockerPage(
     onBack: () -> Unit,
     onNavigateToWhitelist: () -> Unit
 ) {
+    val context = LocalContext.current
+    val adBlockManager = remember { AdBlockManager.getInstance(context) }
+    
     var showStrengthSheet by remember { mutableStateOf(false) }
-    var currentStrength by remember { mutableStateOf(AdBlockStrength.SEDANG) }
-    var blockCookies by remember { mutableStateOf(true) }
+    var currentStrength by remember { mutableStateOf(adBlockManager.strength) }
+    var blockCookies by remember { mutableStateOf(adBlockManager.isCookieBlockerEnabled) }
+    var blockedCount by remember { mutableIntStateOf(adBlockManager.blockedCount) }
     
     val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
@@ -128,7 +130,7 @@ fun AdBlockerPage(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "1.240", // Dummy stat
+                        text = java.text.NumberFormat.getNumberInstance(java.util.Locale("id", "ID")).format(blockedCount),
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
@@ -153,7 +155,7 @@ fun AdBlockerPage(
             AdBlockMenuItem(
                 icon = Icons.Rounded.AdsClick,
                 title = "Kekuatan Pemblokiran Iklan",
-                subtitle = currentStrength.title,
+                subtitle = currentStrength.displayTitle,
                 onClick = { showStrengthSheet = true }
             )
 
@@ -161,7 +163,10 @@ fun AdBlockerPage(
                 icon = Icons.Rounded.Cookie,
                 title = "Blokir kuki dialog otomatis",
                 checked = blockCookies,
-                onCheckedChange = { blockCookies = it }
+                onCheckedChange = { 
+                    blockCookies = it
+                    adBlockManager.isCookieBlockerEnabled = it
+                }
             )
 
             AdBlockMenuItem(
@@ -178,6 +183,7 @@ fun AdBlockerPage(
             selectedStrength = currentStrength,
             onStrengthSelected = {
                 currentStrength = it
+                adBlockManager.strength = it
                 showStrengthSheet = false
             },
             onDismiss = { showStrengthSheet = false }
@@ -289,13 +295,13 @@ fun AdBlockStrengthBottomSheet(
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text(
-                            text = strength.title,
+                            text = strength.displayTitle,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = TextPrimary
                         )
                         Text(
-                            text = strength.description,
+                            text = strength.displayDescription,
                             fontSize = 13.sp,
                             color = TextSecondary,
                             lineHeight = 18.sp
