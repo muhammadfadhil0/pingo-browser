@@ -2,6 +2,8 @@ package com.fadhilmanfa.pingo.ui.pages
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.os.Bundle
+import android.os.Parcel
 import android.webkit.WebView
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -80,6 +82,8 @@ import com.fadhilmanfa.pingo.ui.viewmodels.AiViewModel
 import com.fadhilmanfa.pingo.util.Config
 import com.fadhilmanfa.pingo.util.WebContentParser
 import kotlinx.coroutines.delay
+import java.io.File
+import java.io.FileOutputStream
 import java.util.UUID
 
 private fun captureWebViewThumbnail(webView: WebView, maxWidth: Int = 300): Bitmap? {
@@ -167,6 +171,44 @@ fun BrowsingMainPage() {
     
     val webViewInstances = remember { mutableStateMapOf<String, WebView>() }
     
+    // Logic to save/load WebView state bundles from disk
+    fun saveWebViewStateToDisk(tabId: String, webView: WebView) {
+        val bundle = Bundle()
+        if (webView.saveState(bundle) != null) {
+            try {
+                val file = File(context.filesDir, "wv_state_$tabId")
+                val fos = FileOutputStream(file)
+                val parcel = Parcel.obtain()
+                parcel.writeBundle(bundle)
+                fos.write(parcel.marshall())
+                fos.close()
+                parcel.recycle()
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+    }
+
+    fun loadWebViewStateFromDisk(tabId: String): Bundle? {
+        return try {
+            val file = File(context.filesDir, "wv_state_$tabId")
+            if (!file.exists()) return null
+            val bytes = file.readBytes()
+            val parcel = Parcel.obtain()
+            parcel.unmarshall(bytes, 0, bytes.size)
+            parcel.setDataPosition(0)
+            val bundle = parcel.readBundle(context.classLoader)
+            parcel.recycle()
+            bundle
+        } catch (e: Exception) { null }
+    }
+
+    val webViewStateBundles = remember {
+        val bundles = mutableMapOf<String, Bundle?>()
+        tabs.forEach { tab ->
+            bundles[tab.id] = loadWebViewStateFromDisk(tab.id)
+        }
+        bundles
+    }
+    
     val activeTab = tabs.find { it.isActive } ?: tabs.firstOrNull() ?: TabItem(id = "loading", title = "Pingo", url = "https://www.google.com")
     
     fun persistTabs() {
@@ -183,23 +225,39 @@ fun BrowsingMainPage() {
         if (url.isBlank() || url == "about:blank" || url.startsWith("javascript:")) return
         
         val lastItem = historyItems.firstOrNull()
-        if (lastItem?.url == url) {
-            // Update title if it was generic and now we have a better one
-            if ((lastItem.title == lastItem.url || lastItem.title == "Google") && title.isNotBlank() && title != url) {
+        val now = System.currentTimeMillis()
+        
+        if (lastItem != null) {
+            val isSameUrl = lastItem.url == url
+            val isSimilarSearch = try {
+                val lastUri = java.net.URI(lastItem.url)
+                val currentUri = java.net.URI(url)
+                lastUri.host == currentUri.host && 
+                lastUri.path == currentUri.path && 
+                (url.contains("/search") || url.contains("q=")) &&
+                (now - lastItem.timestamp < 3000)
+            } catch (e: Exception) { false }
+
+            if (isSameUrl || isSimilarSearch) {
                 val idx = historyItems.indexOf(lastItem)
                 if (idx >= 0) {
-                    historyItems[idx] = lastItem.copy(title = title)
+                    val newTitle = if (title.isNotBlank() && title != url) title else lastItem.title
+                    historyItems[idx] = lastItem.copy(
+                        title = newTitle,
+                        url = url,
+                        timestamp = now
+                    )
                     persistHistory()
                 }
+                return
             }
-            return
         }
 
         val newItem = HistoryItem(
             id = UUID.randomUUID().toString(),
             title = if (title.isBlank()) url else title,
             url = url,
-            timestamp = System.currentTimeMillis()
+            timestamp = now
         )
         historyItems.add(0, newItem)
         if (historyItems.size > 500) {
@@ -233,19 +291,14 @@ fun BrowsingMainPage() {
         persistTabs()
     }
     
-    // Extract page content when AI mode is activated
     LaunchedEffect(isAiModeActive) {
         if (isAiModeActive) {
-            // Berikan efek getar saat AI diaktifkan
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            
-            // Trigger JavaScript extraction
             webViewInstances[activeTab.id]?.evaluateJavascript(
                 WebContentParser.extractionScript,
                 null
             )
         } else {
-            // Clear context when AI mode is deactivated
             aiViewModel.clearPageContext()
         }
     }
@@ -275,7 +328,6 @@ fun BrowsingMainPage() {
     }
 
     Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
-        // Main Content (WebView)
         Column(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.fillMaxWidth().height(statusBarPadding).background(Color.White))
             Box(modifier = Modifier.weight(1f)) {
@@ -293,12 +345,12 @@ fun BrowsingMainPage() {
                             PullToRefreshWebView(
                                 modifier = Modifier.fillMaxSize(),
                                 url = tab.url,
+                                savedState = webViewStateBundles[tab.id],
                                 onUrlChange = { url ->
                                     val idx = tabs.indexOfFirst { it.id == tab.id }
                                     if (idx >= 0) {
                                         tabs[idx] = tabs[idx].copy(url = url)
                                         persistTabs()
-                                        addToHistory(tabs[idx].title, url)
                                     }
                                 },
                                 onTitleChange = { title ->
@@ -316,6 +368,8 @@ fun BrowsingMainPage() {
                                         if (!loading) {
                                             updateTabThumbnail(tab.id)
                                             addToHistory(tabs[idx].title, tabs[idx].url)
+                                            // SAVE WEBVIEW STATE TO DISK
+                                            webViewInstances[tab.id]?.let { saveWebViewStateToDisk(tab.id, it) }
                                         }
                                     }
                                 },
@@ -343,7 +397,6 @@ fun BrowsingMainPage() {
                                     }
                                 },
                                 onContentExtracted = { jsonContent ->
-                                    // Parse JSON and convert to Markdown for AI
                                     if (tab.isActive) {
                                         val pageContent = WebContentParser.parseFromJson(jsonContent)
                                         if (pageContent != null) {
@@ -365,7 +418,7 @@ fun BrowsingMainPage() {
             Box(modifier = Modifier.fillMaxWidth().height(navBarPadding).background(Color.White))
         }
 
-        // --- AI EFFECTS OVERLAY (FREEZE LAYER) ---
+        // --- AI EFFECTS OVERLAY ---
         val aiGlowProgress by animateFloatAsState(
             targetValue = if (isAiModeActive) 1f else 0f,
             animationSpec = tween(900),
@@ -377,10 +430,7 @@ fun BrowsingMainPage() {
                 modifier = Modifier
                     .fillMaxSize()
                     .zIndex(1f)
-                    .pointerInput(Unit) {
-                        // Mematikan interaksi di halaman belakang (Freeze)
-                        detectTapGestures { }
-                    }
+                    .pointerInput(Unit) { detectTapGestures { } }
             ) {
                 Box(
                     modifier = Modifier
@@ -406,25 +456,9 @@ fun BrowsingMainPage() {
                             )
                         )
                 )
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(0.5f)
-                        .align(Alignment.BottomCenter)
-                        .graphicsLayer { 
-                            alpha = aiGlowProgress
-                            translationY = (1f - aiGlowProgress) * 200.dp.toPx()
-                        }
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Secondary.copy(alpha = 0.3f))
-                            )
-                        )
-                )
             }
         }
 
-        // Overlay UI
         val targetY = when {
             isAiModeActive -> if (isNavBarAtTop) topOffScreenPos else offScreenPos
             isNavBarAtTop -> topPos
@@ -473,7 +507,7 @@ fun BrowsingMainPage() {
                 isCollapsed = isNavBarCollapsed,
                 showMenu = showMenu,
                 tabCount = tabs.size,
-                onBackPressed = { webViewInstances[activeTab.id]?.goBack() },
+                onBackPressed = { webViewInstances[activeTab.id]?.let { if (it.canGoBack()) it.goBack() } },
                 onMenuToggle = { showMenu = !showMenu },
                 onRefresh = { webViewInstances[activeTab.id]?.reload() },
                 onForward = { webViewInstances[activeTab.id]?.goForward() },
@@ -553,6 +587,7 @@ fun BrowsingMainPage() {
                     loadUrl("about:blank")
                     destroy()
                 }
+                File(context.filesDir, "wv_state_${tabToClose.id}").delete()
                 tabs.removeIf { it.id == tabToClose.id }
                 if (tabs.isEmpty()) {
                     val newId = UUID.randomUUID().toString()
@@ -574,7 +609,6 @@ fun BrowsingMainPage() {
             }
         )
 
-        // Show AI Response
         if (aiUiState is AiUiState.Success) {
             AiResponseBottomSheet(
                 response = (aiUiState as AiUiState.Success).response,
@@ -582,7 +616,6 @@ fun BrowsingMainPage() {
             )
         }
 
-        // Settings Page Overlay
         AnimatedVisibility(
             visible = showSettings,
             enter = slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) + fadeIn(),
@@ -595,7 +628,6 @@ fun BrowsingMainPage() {
             )
         }
 
-        // AdBlocker Page Overlay
         AnimatedVisibility(
             visible = showAdBlocker,
             enter = slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) + fadeIn(),
@@ -608,7 +640,6 @@ fun BrowsingMainPage() {
             )
         }
 
-        // Whitelist Page Overlay
         AnimatedVisibility(
             visible = showWhitelist,
             enter = slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) + fadeIn(),
@@ -618,7 +649,6 @@ fun BrowsingMainPage() {
             WhitelistPage(onBack = { showWhitelist = false })
         }
 
-        // History Page Overlay
         AnimatedVisibility(
             visible = showHistory,
             enter = slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) + fadeIn(),
