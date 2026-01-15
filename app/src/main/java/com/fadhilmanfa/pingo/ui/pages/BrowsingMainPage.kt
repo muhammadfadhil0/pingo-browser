@@ -43,8 +43,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 
 import androidx.compose.runtime.Composable
@@ -120,7 +119,6 @@ private fun captureWebViewThumbnail(webView: WebView, maxWidth: Int = 300): Bitm
 // Delimiter yang lebih aman untuk menghindari konflik dengan konten URL/Title
 private const val DATA_DELIMITER = "|||"
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun BrowsingMainPage(
     currentTheme: String = "system",
@@ -955,7 +953,7 @@ fun BrowsingMainPage(
             exit = fadeOut(tween(600))
         ) {
             Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
-                LoadingIndicator(modifier = Modifier.size(56.dp), color = Secondary)
+                CircularProgressIndicator(modifier = Modifier.size(56.dp), color = Secondary)
                 
                 // Pre-warm heavy UI components during loading to prevent jank on first use
                 PrewarmComposables()

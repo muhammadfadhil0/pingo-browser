@@ -23,10 +23,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -59,7 +58,6 @@ import com.fadhilmanfa.pingo.ui.theme.TextPrimary
 import com.fadhilmanfa.pingo.ui.theme.TextSecondary
 import kotlinx.coroutines.delay
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun UrlEditingOverlay(
     currentUrl: String,
@@ -142,9 +140,10 @@ fun UrlEditingOverlay(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (isLoading) {
-                        LoadingIndicator(
+                        CircularProgressIndicator(
                             modifier = Modifier.size(22.dp),
-                            color = Secondary
+                            color = Secondary,
+                            strokeWidth = 2.5.dp
                         )
                     } else {
                         Icon(
