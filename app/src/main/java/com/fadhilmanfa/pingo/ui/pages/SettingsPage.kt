@@ -63,14 +63,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fadhilmanfa.pingo.data.adblock.AdBlockManager
 import com.fadhilmanfa.pingo.ui.theme.Secondary
-import com.fadhilmanfa.pingo.ui.theme.TextPrimary
-import com.fadhilmanfa.pingo.ui.theme.TextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsPage(
     onBack: () -> Unit,
     onNavigateToAdBlocker: () -> Unit,
+    onNavigateToGeneral: () -> Unit,
+    onNavigateToAppearance: () -> Unit,
+    onNavigateToStartPage: () -> Unit,
+    onNavigateToPrivacy: () -> Unit,
+    onNavigateToSearch: () -> Unit,
+    onNavigateToNotifications: () -> Unit,
+    onNavigateToDownloadSettings: () -> Unit,
+    onNavigateToHelp: () -> Unit,
+    onNavigateToAbout: () -> Unit,
     currentTheme: String,
     onThemeChanged: (String) -> Unit
 ) {
@@ -167,54 +174,55 @@ fun SettingsPage(
                 icon = Icons.Rounded.Language,
                 title = "1. Umum",
                 subtitle = "Bahasa, Default browser",
-                onClick = {}
+                onClick = onNavigateToGeneral
             )
             MenuItem(
                 icon = Icons.Rounded.Palette,
                 title = "2. Tampilan",
                 subtitle = "Tema, layout, ukuran teks",
-                onClick = {}
+                onClick = onNavigateToAppearance
             )
             MenuItem(
                 icon = Icons.Rounded.Home,
                 title = "3. Halaman Mulai",
-                onClick = {}
+                subtitle = "Wallpaper, Speed dials, Rekomendasi",
+                onClick = onNavigateToStartPage
             )
             MenuItem(
                 icon = Icons.Rounded.PrivacyTip,
                 title = "4. Privasi",
                 subtitle = "Pengaturan situs, perizinan, kuki",
-                onClick = {}
+                onClick = onNavigateToPrivacy
             )
             MenuItem(
                 icon = Icons.Rounded.Search,
                 title = "5. Pencarian",
                 subtitle = "Mesin pencarian Anda",
-                onClick = {}
+                onClick = onNavigateToSearch
             )
             MenuItem(
                 icon = Icons.Rounded.Notifications,
                 title = "6. Notifikasi",
-                subtitle = "Update, unduhan",
-                onClick = {}
+                subtitle = "Push notifikasi, sistem",
+                onClick = onNavigateToNotifications
             )
             MenuItem(
                 icon = Icons.Rounded.Download,
                 title = "7. Unduhan",
-                subtitle = "Lokasi unduhan, pengaturan unduhan",
-                onClick = {}
+                subtitle = "Antrean, folder, konfirmasi",
+                onClick = onNavigateToDownloadSettings
             )
             MenuItem(
                 icon = Icons.Rounded.HelpOutline,
                 title = "8. Bantuan",
                 subtitle = "FAQs, lapor kesalahan, sosial",
-                onClick = {}
+                onClick = onNavigateToHelp
             )
             MenuItem(
                 icon = Icons.Rounded.Info,
                 title = "9. Tentang Pingo",
                 subtitle = "Pembaruan, versi",
-                onClick = {}
+                onClick = onNavigateToAbout
             )
         }
     }
@@ -301,7 +309,7 @@ private fun ThemeOptionItem(
         Text(
             text = label,
             fontSize = 16.sp,
-            color = MaterialTheme.colorScheme.onSurface
+            color = if (selected) Secondary else MaterialTheme.colorScheme.onSurface
         )
         RadioButton(
             selected = selected,

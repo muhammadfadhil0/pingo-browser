@@ -31,7 +31,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -142,6 +142,15 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
     var showMenu by remember { mutableStateOf(false) }
     var showTabSheet by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var showGeneralSettings by remember { mutableStateOf(false) }
+    var showAppearanceSettings by remember { mutableStateOf(false) }
+    var showStartPageSettings by remember { mutableStateOf(false) }
+    var showPrivacySettings by remember { mutableStateOf(false) }
+    var showSearchSettings by remember { mutableStateOf(false) }
+    var showNotificationSettings by remember { mutableStateOf(false) }
+    var showDownloadSettings by remember { mutableStateOf(false) }
+    var showHelpSettings by remember { mutableStateOf(false) }
+    var showAboutSettings by remember { mutableStateOf(false) }
     var showAdBlocker by remember { mutableStateOf(false) }
     var showWhitelist by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(false) }
@@ -626,6 +635,15 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                             showTabSheet ||
                             isAiModeActive ||
                             showSettings ||
+                            showGeneralSettings ||
+                            showAppearanceSettings ||
+                            showStartPageSettings ||
+                            showPrivacySettings ||
+                            showSearchSettings ||
+                            showNotificationSettings ||
+                            showDownloadSettings ||
+                            showHelpSettings ||
+                            showAboutSettings ||
                             showAdBlocker ||
                             showWhitelist ||
                             showHistory ||
@@ -633,6 +651,15 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                             showDownloads
     ) {
         when {
+            showAboutSettings -> showAboutSettings = false
+            showHelpSettings -> showHelpSettings = false
+            showDownloadSettings -> showDownloadSettings = false
+            showNotificationSettings -> showNotificationSettings = false
+            showSearchSettings -> showSearchSettings = false
+            showPrivacySettings -> showPrivacySettings = false
+            showStartPageSettings -> showStartPageSettings = false
+            showAppearanceSettings -> showAppearanceSettings = false
+            showGeneralSettings -> showGeneralSettings = false
             showWhitelist -> showWhitelist = false
             showAdBlocker -> showAdBlocker = false
             showSettings -> showSettings = false
@@ -724,7 +751,8 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                                                         !isUrlEditingMode &&
                                                         !showMenu &&
                                                         !isAppStarting &&
-                                                        !isAiModeActive
+                                                        !isAiModeActive &&
+                                                        !tab.isLoading
                                         ) {
                                             isNavBarCollapsed = (direction == ScrollDirection.DOWN)
                                         }
@@ -850,17 +878,23 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                         animationSpec = tween(400)
                 )
 
+        // Get ime insets for NavBar positioning
+        val imeInsets = WindowInsets.ime
+
         Box(
                 modifier =
-                        Modifier.fillMaxSize()
-                                .zIndex(2f)
-                                .graphicsLayer { alpha = uiAlpha * editModeAlpha }
-                                .imePadding()
+                        Modifier.fillMaxSize().zIndex(2f).graphicsLayer {
+                            alpha = uiAlpha * editModeAlpha
+                        }
         ) {
             NavBar(
                     modifier =
                             Modifier.align(Alignment.TopCenter).graphicsLayer {
-                                translationY = animatedY
+                                // Calculate ime offset inside graphicsLayer to avoid recomposition
+                                val imeBottom = imeInsets.getBottom(density).toFloat()
+                                val imeOffset =
+                                        if (imeBottom > 0) imeBottom - navBarPaddingPx else 0f
+                                translationY = animatedY - imeOffset
                             },
                     currentUrl = activeTab.url,
                     isLoading = activeTab.isLoading,
@@ -871,11 +905,29 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                     showMenu = showMenu,
                     tabCount = tabs.size,
                     onBackPressed = {
-                        webViewInstances[activeTab.id]?.let { if (it.canGoBack()) it.goBack() }
+                        webViewInstances[activeTab.id]?.let {
+                            if (it.canGoBack()) {
+                                // Immediately show loader before navigation
+                                val idx = tabs.indexOfFirst { tab -> tab.id == activeTab.id }
+                                if (idx >= 0) {
+                                    tabs[idx] = tabs[idx].copy(isLoading = true, progress = 0f)
+                                }
+                                it.goBack()
+                            }
+                        }
                     },
                     onMenuToggle = { showMenu = !showMenu },
                     onRefresh = { webViewInstances[activeTab.id]?.reload() },
-                    onForward = { webViewInstances[activeTab.id]?.goForward() },
+                    onForward = {
+                        webViewInstances[activeTab.id]?.let {
+                            // Immediately show loader before navigation
+                            val idx = tabs.indexOfFirst { tab -> tab.id == activeTab.id }
+                            if (idx >= 0) {
+                                tabs[idx] = tabs[idx].copy(isLoading = true, progress = 0f)
+                            }
+                            it.goForward()
+                        }
+                    },
                     onUrlBarTap = { isUrlEditingMode = true },
                     onTapToExpand = { isNavBarCollapsed = false },
                     onTabButtonClick = {
@@ -908,10 +960,21 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                             ),
                     expanded = showMenu && !isNavBarCollapsed && !isUrlEditingMode,
                     canGoForward = activeTab.canGoForward,
+                    isLoading = activeTab.isLoading,
                     isAtTop = isNavBarAtTop,
                     onToggle = { showMenu = false },
                     onRefresh = { webViewInstances[activeTab.id]?.reload() },
-                    onForward = { webViewInstances[activeTab.id]?.goForward() },
+                    onStop = { webViewInstances[activeTab.id]?.stopLoading() },
+                    onForward = {
+                        webViewInstances[activeTab.id]?.let {
+                            // Immediately show loader before navigation
+                            val idx = tabs.indexOfFirst { tab -> tab.id == activeTab.id }
+                            if (idx >= 0) {
+                                tabs[idx] = tabs[idx].copy(isLoading = true, progress = 0f)
+                            }
+                            it.goForward()
+                        }
+                    },
                     onPingoAI = { isAiModeActive = true },
                     onBookmark = { showBookmarkSheet = true },
                     onSettings = { showSettings = true },
@@ -1038,8 +1101,154 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
             SettingsPage(
                     onBack = { showSettings = false },
                     onNavigateToAdBlocker = { showAdBlocker = true },
+                    onNavigateToGeneral = { showGeneralSettings = true },
+                    onNavigateToAppearance = { showAppearanceSettings = true },
+                    onNavigateToStartPage = { showStartPageSettings = true },
+                    onNavigateToPrivacy = { showPrivacySettings = true },
+                    onNavigateToSearch = { showSearchSettings = true },
+                    onNavigateToNotifications = { showNotificationSettings = true },
+                    onNavigateToDownloadSettings = { showDownloadSettings = true },
+                    onNavigateToHelp = { showHelpSettings = true },
+                    onNavigateToAbout = { showAboutSettings = true },
                     currentTheme = currentTheme,
                     onThemeChanged = onThemeChanged
+            )
+        }
+
+        AnimatedVisibility(
+                visible = showGeneralSettings,
+                enter =
+                        slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) +
+                                fadeIn(),
+                exit =
+                        slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
+                                fadeOut(),
+                modifier = Modifier.zIndex(11f)
+        ) {
+            GeneralSettingsPage(
+                    onBack = { showGeneralSettings = false }
+            )
+        }
+
+        AnimatedVisibility(
+                visible = showAppearanceSettings,
+                enter =
+                        slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) +
+                                fadeIn(),
+                exit =
+                        slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
+                                fadeOut(),
+                modifier = Modifier.zIndex(12f)
+        ) {
+            AppearanceSettingsPage(
+                    onBack = { showAppearanceSettings = false },
+                    currentTheme = currentTheme,
+                    onThemeChanged = onThemeChanged
+            )
+        }
+
+        AnimatedVisibility(
+                visible = showStartPageSettings,
+                enter =
+                        slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) +
+                                fadeIn(),
+                exit =
+                        slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
+                                fadeOut(),
+                modifier = Modifier.zIndex(13f)
+        ) {
+            StartPageSettingsPage(
+                    onBack = { showStartPageSettings = false }
+            )
+        }
+
+        AnimatedVisibility(
+                visible = showPrivacySettings,
+                enter =
+                        slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) +
+                                fadeIn(),
+                exit =
+                        slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
+                                fadeOut(),
+                modifier = Modifier.zIndex(14f)
+        ) {
+            PrivacySettingsPage(
+                    onBack = { showPrivacySettings = false }
+            )
+        }
+
+        AnimatedVisibility(
+                visible = showSearchSettings,
+                enter =
+                        slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) +
+                                fadeIn(),
+                exit =
+                        slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
+                                fadeOut(),
+                modifier = Modifier.zIndex(15f)
+        ) {
+            SearchSettingsPage(
+                    onBack = { showSearchSettings = false }
+            )
+        }
+
+        AnimatedVisibility(
+                visible = showNotificationSettings,
+                enter =
+                        slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) +
+                                fadeIn(),
+                exit =
+                        slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
+                                fadeOut(),
+                modifier = Modifier.zIndex(16f)
+        ) {
+            NotificationSettingsPage(
+                    onBack = { showNotificationSettings = false }
+            )
+        }
+
+        AnimatedVisibility(
+                visible = showDownloadSettings,
+                enter =
+                        slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) +
+                                fadeIn(),
+                exit =
+                        slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
+                                fadeOut(),
+                modifier = Modifier.zIndex(17f)
+        ) {
+            DownloadSettingsPage(
+                    onBack = { showDownloadSettings = false }
+            )
+        }
+
+        AnimatedVisibility(
+                visible = showHelpSettings,
+                enter =
+                        slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) +
+                                fadeIn(),
+                exit =
+                        slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
+                                fadeOut(),
+                modifier = Modifier.zIndex(18f)
+        ) {
+            HelpSettingsPage(
+                    onBack = { showHelpSettings = false }
+            )
+        }
+
+        AnimatedVisibility(
+                visible = showAboutSettings,
+                enter =
+                        slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) +
+                                fadeIn(),
+                exit =
+                        slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
+                                fadeOut(),
+                modifier = Modifier.zIndex(19f)
+        ) {
+            AboutSettingsPage(
+                    onBack = { showAboutSettings = false }
             )
         }
 
@@ -1051,7 +1260,7 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                 exit =
                         slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
                                 fadeOut(),
-                modifier = Modifier.zIndex(11f)
+                modifier = Modifier.zIndex(20f)
         ) {
             AdBlockerPage(
                     onBack = { showAdBlocker = false },
@@ -1067,7 +1276,7 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                 exit =
                         slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
                                 fadeOut(),
-                modifier = Modifier.zIndex(12f)
+                modifier = Modifier.zIndex(21f)
         ) { WhitelistPage(onBack = { showWhitelist = false }) }
 
         AnimatedVisibility(
@@ -1078,7 +1287,7 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                 exit =
                         slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
                                 fadeOut(),
-                modifier = Modifier.zIndex(13f)
+                modifier = Modifier.zIndex(22f)
         ) {
             HistoryPage(
                     historyItems = historyItems,
@@ -1111,7 +1320,7 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                 exit =
                         slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
                                 fadeOut(),
-                modifier = Modifier.zIndex(14f)
+                modifier = Modifier.zIndex(23f)
         ) {
             DownloadsPage(
                     downloadItems = downloadItems,

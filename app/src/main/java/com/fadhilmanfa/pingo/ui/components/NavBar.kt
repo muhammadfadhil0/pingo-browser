@@ -51,6 +51,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.compose.AsyncImagePainter
+import coil.compose.rememberAsyncImagePainter
 import com.fadhilmanfa.pingo.ui.theme.Secondary
 import kotlinx.coroutines.launch
 
@@ -542,12 +544,29 @@ private fun UrlBarDisplay(
                                         strokeWidth = 2.dp
                                 )
                         } else if (faviconUrl.isNotEmpty()) {
-                                AsyncImage(
-                                        model = faviconUrl,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp).clip(CircleShape),
-                                        contentScale = ContentScale.Fit
-                                )
+                                val painter = rememberAsyncImagePainter(model = faviconUrl)
+                                val painterState = painter.state
+
+                                if (painterState is AsyncImagePainter.State.Error ||
+                                                painterState is AsyncImagePainter.State.Empty
+                                ) {
+                                        // Fallback to globe icon when favicon fails
+                                        Icon(
+                                                imageVector = Icons.Rounded.Language,
+                                                contentDescription = null,
+                                                tint =
+                                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                                                .copy(alpha = 0.7f),
+                                                modifier = Modifier.size(16.dp)
+                                        )
+                                } else {
+                                        AsyncImage(
+                                                model = faviconUrl,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp).clip(CircleShape),
+                                                contentScale = ContentScale.Fit
+                                        )
+                                }
                         } else {
                                 Icon(
                                         imageVector = Icons.Rounded.Language,
@@ -587,11 +606,40 @@ private fun CollapsedUrlDisplay(domainName: String, faviconUrl: String, isLoadin
                                 strokeWidth = 2.dp
                         )
                 } else if (faviconUrl.isNotEmpty()) {
-                        AsyncImage(
-                                model = faviconUrl,
+                        val painter = rememberAsyncImagePainter(model = faviconUrl)
+                        val painterState = painter.state
+
+                        if (painterState is AsyncImagePainter.State.Error ||
+                                        painterState is AsyncImagePainter.State.Empty
+                        ) {
+                                // Fallback to globe icon when favicon fails
+                                Icon(
+                                        imageVector = Icons.Rounded.Language,
+                                        contentDescription = null,
+                                        tint =
+                                                MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                                        alpha = 0.7f
+                                                ),
+                                        modifier = Modifier.size(14.dp)
+                                )
+                        } else {
+                                AsyncImage(
+                                        model = faviconUrl,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp).clip(CircleShape),
+                                        contentScale = ContentScale.Fit
+                                )
+                        }
+                } else {
+                        // Fallback to globe icon when no favicon URL
+                        Icon(
+                                imageVector = Icons.Rounded.Language,
                                 contentDescription = null,
-                                modifier = Modifier.size(14.dp).clip(CircleShape),
-                                contentScale = ContentScale.Fit
+                                tint =
+                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                                alpha = 0.7f
+                                        ),
+                                modifier = Modifier.size(14.dp)
                         )
                 }
                 Spacer(modifier = Modifier.width(6.dp))
