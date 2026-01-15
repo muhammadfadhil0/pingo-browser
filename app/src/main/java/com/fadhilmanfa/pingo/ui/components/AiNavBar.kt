@@ -43,6 +43,7 @@ import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -70,9 +71,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fadhilmanfa.pingo.ui.theme.GreyBorder
 import com.fadhilmanfa.pingo.ui.theme.Secondary
-import com.fadhilmanfa.pingo.ui.theme.TextSecondary
 
 private data class AiSuggestion(
     val icon: ImageVector,
@@ -121,7 +120,6 @@ fun AiNavBar(
         )
     )
 
-    // Morph specs for smoother transitions
     val morphSpec = spring<IntSize>(
         dampingRatio = Spring.DampingRatioLowBouncy,
         stiffness = Spring.StiffnessLow
@@ -135,14 +133,13 @@ fun AiNavBar(
         horizontalAlignment = Alignment.End,
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // PROCESSING INDICATOR
         AnimatedVisibility(
             visible = isLoading,
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically()
         ) {
             Surface(
-                color = Color.White.copy(alpha = 0.9f),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
                 shape = RoundedCornerShape(20.dp),
                 border = BorderStroke(1.dp, Secondary.copy(alpha = 0.3f)),
                 modifier = Modifier.padding(bottom = 4.dp)
@@ -160,14 +157,13 @@ fun AiNavBar(
                     Text(
                         text = "Memproses jawaban Anda...",
                         fontSize = 12.sp,
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Medium
                     )
                 }
             }
         }
 
-        // AI SUGGESTIONS STACK
         AnimatedVisibility(
             visible = text.isEmpty() && !isLoading,
             enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
@@ -187,20 +183,19 @@ fun AiNavBar(
             }
         }
 
-        // MAIN INPUT BAR
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 64.dp)
                 .scale(scale)
                 .shadow(
-                    elevation = 6.dp, // Reduced from 12.dp for better performance
+                    elevation = 6.dp,
                     shape = RoundedCornerShape(28.dp),
                     ambientColor = Secondary.copy(alpha = 0.2f),
                     spotColor = Secondary.copy(alpha = 0.2f)
                 ),
             shape = RoundedCornerShape(28.dp),
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surface,
             border = BorderStroke(1.5.dp, aiGradient)
         ) {
             Row(
@@ -210,7 +205,6 @@ fun AiNavBar(
                     .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessLow)),
                 verticalAlignment = Alignment.Bottom
             ) {
-                // AI Icon (Hidden with Morph Effect)
                 AnimatedVisibility(
                     visible = text.isEmpty(),
                     enter = fadeIn(fadeSpec) + expandHorizontally(animationSpec = morphSpec, expandFrom = Alignment.Start),
@@ -233,7 +227,6 @@ fun AiNavBar(
                     }
                 }
 
-                // Input Field Multi-line (Auto-shifts because of Row + animateContentSize)
                 BasicTextField(
                     value = text,
                     onValueChange = { text = it },
@@ -241,11 +234,11 @@ fun AiNavBar(
                         .weight(1f)
                         .heightIn(min = 44.dp, max = 150.dp)
                         .clip(RoundedCornerShape(22.dp))
-                        .background(Color(0xFFF0F4F8))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                         .focusRequester(focusRequester),
                     textStyle = TextStyle(
                         fontSize = 14.sp,
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Medium
                     ),
                     singleLine = false,
@@ -258,7 +251,7 @@ fun AiNavBar(
                         onSend = {
                             if (text.isNotBlank() && !isLoading) {
                                 onSend(text)
-                                text = "" // Clear text after sending
+                                text = ""
                                 focusManager.clearFocus()
                             }
                         }
@@ -274,7 +267,7 @@ fun AiNavBar(
                                 Text(
                                     text = "Tanya Pingo AI...",
                                     fontSize = 14.sp,
-                                    color = Color.Gray,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                     fontWeight = FontWeight.Medium
                                 )
                             }
@@ -283,7 +276,6 @@ fun AiNavBar(
                     }
                 )
 
-                // Send Button (Appears with Morph Effect)
                 AnimatedVisibility(
                     visible = text.isNotEmpty(),
                     enter = fadeIn(fadeSpec) + expandHorizontally(animationSpec = morphSpec, expandFrom = Alignment.End),
@@ -313,7 +305,6 @@ fun AiNavBar(
                     }
                 }
 
-                // Close Button
                 Box(
                     modifier = Modifier
                         .padding(bottom = 2.dp, start = 4.dp)
@@ -328,7 +319,7 @@ fun AiNavBar(
                     Icon(
                         imageVector = Icons.Rounded.Close,
                         contentDescription = "Close",
-                        tint = Color.Gray,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -354,15 +345,15 @@ private fun AiSuggestionPill(
     Surface(
         modifier = Modifier
             .scale(scale)
-            .shadow(2.dp, RoundedCornerShape(20.dp)) // Reduced from 4.dp
+            .shadow(2.dp, RoundedCornerShape(20.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick
             ),
         shape = RoundedCornerShape(20.dp),
-        color = Color.White,
-        border = BorderStroke(1.dp, GreyBorder.copy(alpha = 0.5f))
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
@@ -371,14 +362,14 @@ private fun AiSuggestionPill(
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = TextSecondary,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = label,
                 fontSize = 13.sp,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Medium
             )
         }

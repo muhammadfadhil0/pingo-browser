@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.MaterialTheme
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -65,11 +66,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fadhilmanfa.pingo.data.BookmarkItem
 import com.fadhilmanfa.pingo.data.HistoryItem
 import com.fadhilmanfa.pingo.data.TabItem
 import com.fadhilmanfa.pingo.data.remote.GroqRepository
 import com.fadhilmanfa.pingo.ui.components.AiNavBar
 import com.fadhilmanfa.pingo.ui.components.AiResponseBottomSheet
+import com.fadhilmanfa.pingo.ui.components.BookmarkBottomSheet
 import com.fadhilmanfa.pingo.ui.components.PullToRefreshWebView
 import com.fadhilmanfa.pingo.ui.components.FabMenuOverlay
 import com.fadhilmanfa.pingo.ui.components.NavBar
@@ -106,7 +109,10 @@ private const val DATA_DELIMITER = "|||"
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun BrowsingMainPage() {
+fun BrowsingMainPage(
+    currentTheme: String = "system",
+    onThemeChanged: (String) -> Unit = {}
+) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val sharedPrefs = remember { context.getSharedPreferences("pingo_browser_prefs", Context.MODE_PRIVATE) }
@@ -134,6 +140,7 @@ fun BrowsingMainPage() {
     var showAdBlocker by remember { mutableStateOf(false) }
     var showWhitelist by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(false) }
+    var showBookmarkSheet by remember { mutableStateOf(false) }
     var tabSheetDragProgress by remember { mutableFloatStateOf(0f) }
     var uiAlpha by remember { mutableFloatStateOf(0f) }
     var isAppStarting by remember { mutableStateOf(true) }
@@ -188,6 +195,22 @@ fun BrowsingMainPage() {
         }
         historyList
     }
+
+    val bookmarkItems = remember {
+        val savedBookmarks = sharedPrefs.getStringSet("bookmark_data", null)
+        val bookmarkList = mutableStateListOf<BookmarkItem>()
+        if (savedBookmarks != null) {
+            val items = savedBookmarks.mapNotNull { data ->
+                val parts = data.split(DATA_DELIMITER)
+                if (parts.size >= 4) {
+                    val timestamp = parts[3].toLongOrNull() ?: System.currentTimeMillis()
+                    BookmarkItem(id = parts[0], title = parts[1], url = parts[2], timestamp = timestamp)
+                } else null
+            }.sortedByDescending { it.timestamp }
+            bookmarkList.addAll(items)
+        }
+        bookmarkList
+    }
     
     val webViewInstances = remember { mutableStateMapOf<String, WebView>() }
     
@@ -241,6 +264,11 @@ fun BrowsingMainPage() {
         sharedPrefs.edit().putStringSet("history_data", dataSet).apply()
     }
 
+    fun persistBookmarks() {
+        val dataSet = bookmarkItems.map { "${it.id}$DATA_DELIMITER${it.title}$DATA_DELIMITER${it.url}$DATA_DELIMITER${it.timestamp}" }.toSet()
+        sharedPrefs.edit().putStringSet("bookmark_data", dataSet).apply()
+    }
+
     fun addToHistory(title: String, url: String) {
         if (url.isBlank() || url == "about:blank" || url.startsWith("javascript:")) return
         
@@ -284,6 +312,21 @@ fun BrowsingMainPage() {
             historyItems.removeAt(historyItems.size - 1)
         }
         persistHistory()
+    }
+
+    fun toggleBookmark(tab: TabItem) {
+        val existing = bookmarkItems.find { it.url == tab.url }
+        if (existing != null) {
+            bookmarkItems.remove(existing)
+        } else {
+            bookmarkItems.add(0, BookmarkItem(
+                id = UUID.randomUUID().toString(),
+                title = if (tab.title.isBlank()) tab.url else tab.title,
+                url = tab.url,
+                timestamp = System.currentTimeMillis()
+            ))
+        }
+        persistBookmarks()
     }
 
     val density = LocalDensity.current
@@ -334,12 +377,13 @@ fun BrowsingMainPage() {
         }
     }
 
-    BackHandler(enabled = activeTab.canGoBack || showMenu || showTabSheet || isAiModeActive || showSettings || showAdBlocker || showWhitelist || showHistory) {
+    BackHandler(enabled = activeTab.canGoBack || showMenu || showTabSheet || isAiModeActive || showSettings || showAdBlocker || showWhitelist || showHistory || showBookmarkSheet) {
         when {
             showWhitelist -> showWhitelist = false
             showAdBlocker -> showAdBlocker = false
             showSettings -> showSettings = false
             showHistory -> showHistory = false
+            showBookmarkSheet -> showBookmarkSheet = false
             isAiModeActive -> isAiModeActive = false
             showTabSheet -> { showTabSheet = false; tabSheetDragProgress = 0f }
             showMenu -> showMenu = false
@@ -347,9 +391,9 @@ fun BrowsingMainPage() {
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.fillMaxWidth().height(statusBarPadding).background(Color.White))
+            Box(modifier = Modifier.fillMaxWidth().height(statusBarPadding).background(MaterialTheme.colorScheme.background))
             Box(modifier = Modifier.weight(1f)) {
                 tabs.forEach { tab ->
                     key(tab.id) {
@@ -435,7 +479,7 @@ fun BrowsingMainPage() {
                     }
                 }
             }
-            Box(modifier = Modifier.fillMaxWidth().height(navBarPadding).background(Color.White))
+            Box(modifier = Modifier.fillMaxWidth().height(navBarPadding).background(MaterialTheme.colorScheme.background))
         }
 
         // --- AI EFFECTS OVERLAY ---
@@ -567,6 +611,7 @@ fun BrowsingMainPage() {
                 onRefresh = { webViewInstances[activeTab.id]?.reload() },
                 onForward = { webViewInstances[activeTab.id]?.goForward() },
                 onPingoAI = { isAiModeActive = true },
+                onBookmark = { showBookmarkSheet = true },
                 onSettings = { showSettings = true },
                 onHistory = { showHistory = true }
             )
@@ -634,6 +679,28 @@ fun BrowsingMainPage() {
             }
         )
 
+        if (showBookmarkSheet) {
+            BookmarkBottomSheet(
+                activeTab = activeTab,
+                bookmarks = bookmarkItems,
+                isCurrentPageBookmarked = bookmarkItems.any { it.url == activeTab.url },
+                onDismiss = { showBookmarkSheet = false },
+                onToggleBookmark = { toggleBookmark(it) },
+                onBookmarkClick = { bookmark ->
+                    val idx = tabs.indexOfFirst { it.id == activeTab.id }
+                    if (idx >= 0) {
+                        tabs[idx] = tabs[idx].copy(isLoading = true, progress = 0f)
+                    }
+                    webViewInstances[activeTab.id]?.loadUrl(bookmark.url)
+                    showBookmarkSheet = false
+                },
+                onDeleteBookmark = { bookmark ->
+                    bookmarkItems.remove(bookmark)
+                    persistBookmarks()
+                }
+            )
+        }
+
         if (aiUiState is AiUiState.Success) {
             AiResponseBottomSheet(
                 response = (aiUiState as AiUiState.Success).response,
@@ -649,7 +716,9 @@ fun BrowsingMainPage() {
         ) {
             SettingsPage(
                 onBack = { showSettings = false },
-                onNavigateToAdBlocker = { showAdBlocker = true }
+                onNavigateToAdBlocker = { showAdBlocker = true },
+                currentTheme = currentTheme,
+                onThemeChanged = onThemeChanged
             )
         }
 
@@ -708,7 +777,7 @@ fun BrowsingMainPage() {
             enter = fadeIn(),
             exit = fadeOut(tween(600))
         ) {
-            Box(modifier = Modifier.fillMaxSize().background(Color.White), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
                 LoadingIndicator(modifier = Modifier.size(56.dp), color = Secondary)
             }
         }

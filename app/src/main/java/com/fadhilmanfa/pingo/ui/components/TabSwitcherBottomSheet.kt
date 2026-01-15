@@ -19,6 +19,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -31,8 +32,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fadhilmanfa.pingo.data.TabItem
-import com.fadhilmanfa.pingo.ui.theme.GreyBackground
-import com.fadhilmanfa.pingo.ui.theme.TextPrimary
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,9 +66,9 @@ fun TabSwitcherBottomSheet(
             onDismissRequest = onDismiss,
             sheetState = sheetState,
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-            containerColor = GreyBackground,
+            containerColor = MaterialTheme.colorScheme.surface,
             contentWindowInsets = { WindowInsets(0.dp) },
-            scrimColor = Color.Black.copy(alpha = 0.15f)
+            scrimColor = Color.Black.copy(alpha = 0.32f)
         ) {
             Column(
                 modifier = Modifier
@@ -141,7 +140,7 @@ private fun Header(tabCount: Int, onNewTab: () -> Unit) {
         Text(
             text = "$tabCount Tab",
             fontSize = 16.sp,
-            color = TextPrimary
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         IconButton(
@@ -151,7 +150,7 @@ private fun Header(tabCount: Int, onNewTab: () -> Unit) {
             Icon(
                 imageVector = Icons.Rounded.Add,
                 contentDescription = "Tab Baru",
-                tint = Color.Black,
+                tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(22.dp)
             )
         }

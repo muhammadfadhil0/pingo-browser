@@ -1,5 +1,6 @@
 package com.fadhilmanfa.pingo.ui.pages
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,7 +13,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -35,12 +35,18 @@ import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.PrivacyTip
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,17 +66,22 @@ import com.fadhilmanfa.pingo.ui.theme.Secondary
 import com.fadhilmanfa.pingo.ui.theme.TextPrimary
 import com.fadhilmanfa.pingo.ui.theme.TextSecondary
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsPage(
     onBack: () -> Unit,
-    onNavigateToAdBlocker: () -> Unit
+    onNavigateToAdBlocker: () -> Unit,
+    currentTheme: String,
+    onThemeChanged: (String) -> Unit
 ) {
     val context = LocalContext.current
     val adBlockManager = remember { AdBlockManager.getInstance(context) }
     
     var pingoAiEnabled by remember { mutableStateOf(true) }
     var adBlockerEnabled by remember { mutableStateOf(adBlockManager.isEnabled) }
-    var darkModeEnabled by remember { mutableStateOf(false) }
+    
+    // Theme states
+    var showThemeSheet by remember { mutableStateOf(false) }
 
     val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
@@ -78,7 +89,7 @@ fun SettingsPage(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background)
             .padding(top = statusBarPadding)
     ) {
         // Header
@@ -92,14 +103,14 @@ fun SettingsPage(
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                     contentDescription = "Back",
-                    tint = TextPrimary
+                    tint = MaterialTheme.colorScheme.onBackground
                 )
             }
             Text(
                 text = "Pengaturan",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(start = 8.dp)
             )
         }
@@ -132,14 +143,24 @@ fun SettingsPage(
                 )
                 SwitchItem(
                     icon = Icons.Rounded.DarkMode,
-                    title = "Dark Mode",
-                    subtitle = if (darkModeEnabled) "Aktif" else "Tidak Aktif",
-                    checked = darkModeEnabled,
-                    onCheckedChange = { darkModeEnabled = it }
+                    title = "Tema Gelap",
+                    subtitle = when(currentTheme) {
+                        "light" -> "Terang"
+                        "dark" -> "Gelap"
+                        else -> "Ikuti Perangkat"
+                    },
+                    checked = currentTheme == "dark",
+                    onCheckedChange = { isDark ->
+                        onThemeChanged(if (isDark) "dark" else "light")
+                    },
+                    onClick = { showThemeSheet = true }
                 )
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFF0F0F0))
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 8.dp), 
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
 
             // Menu Items Section
             MenuItem(
@@ -197,6 +218,100 @@ fun SettingsPage(
             )
         }
     }
+
+    if (showThemeSheet) {
+        ThemeSelectionBottomSheet(
+            selectedTheme = currentTheme,
+            onThemeSelected = { 
+                onThemeChanged(it)
+                showThemeSheet = false
+            },
+            onDismiss = { showThemeSheet = false }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ThemeSelectionBottomSheet(
+    selectedTheme: String,
+    onThemeSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(),
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(vertical = 12.dp)
+                    .size(width = 32.dp, height = 4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+            )
+        }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 32.dp)
+        ) {
+            Text(
+                text = "Pilih Tema",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+            )
+            
+            ThemeOptionItem(
+                label = "Terang",
+                selected = selectedTheme == "light",
+                onClick = { onThemeSelected("light") }
+            )
+            ThemeOptionItem(
+                label = "Gelap",
+                selected = selectedTheme == "dark",
+                onClick = { onThemeSelected("dark") }
+            )
+            ThemeOptionItem(
+                label = "Ikuti Perangkat",
+                selected = selectedTheme == "system",
+                onClick = { onThemeSelected("system") }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ThemeOptionItem(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            fontSize = 16.sp,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        RadioButton(
+            selected = selected,
+            onClick = null,
+            colors = RadioButtonDefaults.colors(
+                selectedColor = Secondary,
+                unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        )
+    }
 }
 
 @Composable
@@ -221,6 +336,7 @@ private fun SwitchItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -247,12 +363,12 @@ private fun SwitchItem(
                     text = title,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = subtitle,
                     fontSize = 13.sp,
-                    color = TextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -263,7 +379,7 @@ private fun SwitchItem(
                 checkedThumbColor = Color.White,
                 checkedTrackColor = Secondary,
                 uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = Color.LightGray,
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
                 uncheckedBorderColor = Color.Transparent
             )
         )
@@ -287,7 +403,7 @@ private fun MenuItem(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = TextSecondary,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
@@ -296,13 +412,13 @@ private fun MenuItem(
                 text = title,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
-                color = TextPrimary
+                color = MaterialTheme.colorScheme.onSurface
             )
             if (subtitle != null) {
                 Text(
                     text = subtitle,
                     fontSize = 13.sp,
-                    color = TextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

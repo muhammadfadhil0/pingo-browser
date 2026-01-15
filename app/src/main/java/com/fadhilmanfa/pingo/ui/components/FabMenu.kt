@@ -32,6 +32,7 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,8 +49,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fadhilmanfa.pingo.ui.theme.GreyBorder
-import com.fadhilmanfa.pingo.ui.theme.TextSecondary
 import kotlinx.coroutines.delay
 
 private data class FabMenuItem(
@@ -59,10 +58,6 @@ private data class FabMenuItem(
     val enabled: Boolean = true
 )
 
-/**
- * FabMenuOverlay with staggered fade animation from bottom to top.
- * Pills match the navbar styling (white background with grey border).
- */
 @Composable
 fun FabMenuOverlay(
     modifier: Modifier = Modifier,
@@ -78,7 +73,6 @@ fun FabMenuOverlay(
     onDownloads: () -> Unit = {},
     onSettings: () -> Unit = {}
 ) {
-    // When at top, reverse the order so items appear correctly
     val baseMenuItems = listOf(
         FabMenuItem(Icons.Rounded.Settings, "Pengaturan", { onSettings(); onToggle() }),
         FabMenuItem(Icons.Rounded.Download, "Unduhan", { onDownloads(); onToggle() }),
@@ -90,32 +84,20 @@ fun FabMenuOverlay(
     )
     
     val menuItems = if (isAtTop) baseMenuItems.reversed() else baseMenuItems
-
-    // Track visibility state for each item
     var visibleItems by remember { mutableStateOf(setOf<Int>()) }
 
-    // Staggered animation effect
     LaunchedEffect(expanded, isAtTop) {
         if (expanded) {
-            // Show items one by one with staggered animation
-            val indices = if (isAtTop) {
-                // When at top, animate from top (first item) to bottom (last item)
-                menuItems.indices
-            } else {
-                // When at bottom, animate from bottom (last item) to top (first item)
-                menuItems.indices.reversed()
-            }
+            val indices = if (isAtTop) menuItems.indices else menuItems.indices.reversed()
             for (i in indices) {
-                delay(50L) // 50ms delay between each item
+                delay(50L)
                 visibleItems = visibleItems + i
             }
         } else {
-            // Hide all items quickly
             visibleItems = emptySet()
         }
     }
 
-    // Backdrop to close menu when clicking outside
     if (expanded) {
         Box(
             modifier = Modifier
@@ -143,9 +125,7 @@ fun FabMenuOverlay(
             menuItems.forEachIndexed { index, item ->
                 AnimatedVisibility(
                     visible = expanded && index in visibleItems,
-                    enter = fadeIn(
-                        animationSpec = tween(200)
-                    ) + slideInVertically(
+                    enter = fadeIn(animationSpec = tween(200)) + slideInVertically(
                         initialOffsetY = { if (isAtTop) -it / 2 else it / 2 },
                         animationSpec = spring(
                             dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -187,7 +167,7 @@ private fun MenuPill(
     Surface(
         modifier = Modifier
             .scale(scale)
-            .shadow(3.dp, RoundedCornerShape(25.dp)) // Reduced shadow for performance
+            .shadow(3.dp, RoundedCornerShape(25.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -195,8 +175,8 @@ private fun MenuPill(
                 onClick = onClick
             ),
         shape = RoundedCornerShape(25.dp),
-        color = Color.White,
-        border = BorderStroke(1.dp, GreyBorder.copy(alpha = 0.5f))
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -205,14 +185,14 @@ private fun MenuPill(
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = if (enabled) TextSecondary else TextSecondary.copy(alpha = 0.4f),
+                tint = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(10.dp))
             Text(
                 text = label,
                 fontSize = 14.sp,
-                color = if (enabled) TextSecondary else TextSecondary.copy(alpha = 0.4f)
+                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
             )
         }
     }

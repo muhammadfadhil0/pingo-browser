@@ -30,6 +30,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,9 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.fadhilmanfa.pingo.ui.theme.GreyBorder
 import com.fadhilmanfa.pingo.ui.theme.Secondary
-import com.fadhilmanfa.pingo.ui.theme.TextSecondary
 
 private fun extractDomain(url: String): String {
     return try {
@@ -74,6 +73,7 @@ private fun getFaviconUrl(url: String): String {
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun NavBar(
     modifier: Modifier = Modifier,
@@ -139,7 +139,7 @@ fun NavBar(
                 .fillMaxWidth(widthFraction)
                 .height(heightAnim)
                 .scale(navBarScale)
-                .shadow(4.dp, RoundedCornerShape(50.dp)) // Reduced shadow for performance
+                .shadow(4.dp, RoundedCornerShape(50.dp))
                 .pointerInput(isCollapsed) {
                     if (!isCollapsed) {
                         var dragSum = 0f
@@ -154,8 +154,8 @@ fun NavBar(
                     }
                 },
             shape = RoundedCornerShape(50.dp),
-            color = Color.White,
-            border = BorderStroke(1.dp, GreyBorder.copy(alpha = 0.5f))
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
         ) {
             Box(modifier = Modifier.fillMaxWidth()) {
                 // KONTEN EXPANDED
@@ -166,7 +166,6 @@ fun NavBar(
                         .align(Alignment.Center)
                         .graphicsLayer { 
                             alpha = expandedAlpha
-                            // Disable hit testing when collapsed
                             translationX = if (isCollapsed) 1000f else 0f 
                         },
                     verticalAlignment = Alignment.CenterVertically,
@@ -186,7 +185,7 @@ fun NavBar(
                         faviconUrl = faviconUrl,
                         isLoading = isLoading,
                         onClick = onUrlBarTap,
-                        enabled = !isCollapsed // PENTING: Matikan klik internal jika collapsed
+                        enabled = !isCollapsed
                     )
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -213,8 +212,6 @@ fun NavBar(
                     CollapsedUrlDisplay(domainName = domainName, faviconUrl = faviconUrl, isLoading = isLoading)
                 }
 
-                // LAPISAN KLIK KHUSUS COLLAPSED (PENTING!)
-                // Muncul hanya saat collapsed untuk menangkap tap di seluruh area bar
                 if (isCollapsed) {
                     Box(
                         modifier = Modifier
@@ -263,7 +260,7 @@ private fun NavButton(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = if (enabled) TextSecondary.copy(alpha = 0.7f) else TextSecondary.copy(alpha = 0.3f),
+            tint = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
             modifier = Modifier.size(20.dp)
         )
     }
@@ -279,13 +276,13 @@ private fun TabCountButton(count: Int, onClick: () -> Unit, enabled: Boolean = t
             modifier = Modifier.size(24.dp),
             shape = RoundedCornerShape(6.dp),
             color = Color.Transparent,
-            border = BorderStroke(1.2.dp, TextSecondary.copy(alpha = 0.6f))
+            border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
                     text = if (count > 99) "99+" else count.toString(),
                     fontSize = 10.sp,
-                    color = TextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -308,51 +305,84 @@ private fun UrlBarDisplay(
             .height(42.dp)
             .clickable(enabled = enabled, onClick = onClick),
         shape = RoundedCornerShape(21.dp),
-        color = GreyBorder.copy(alpha = 0.1f),
-        border = BorderStroke(1.dp, GreyBorder.copy(alpha = 0.3f))
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
         ) {
-            if (isLoading) {
-                LoadingIndicator(Modifier.size(18.dp), color = Secondary)
-            } else {
+            if (faviconUrl.isNotEmpty()) {
                 AsyncImage(
                     model = faviconUrl,
-                    contentDescription = "Website icon",
-                    modifier = Modifier
-                        .size(16.dp)
-                        .clip(RoundedCornerShape(4.dp)),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp).clip(CircleShape),
                     contentScale = ContentScale.Fit
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Rounded.Language,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.size(16.dp)
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text, fontSize = 13.sp, color = TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            Text(
+                text = text,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (isLoading) {
+                Spacer(modifier = Modifier.width(8.dp))
+                LoadingIndicator(
+                    modifier = Modifier.size(14.dp),
+                    color = Secondary
+                )
+            }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun CollapsedUrlDisplay(domainName: String, faviconUrl: String, isLoading: Boolean) {
+private fun CollapsedUrlDisplay(
+    domainName: String,
+    faviconUrl: String,
+    isLoading: Boolean
+) {
     Row(
-        modifier = Modifier.padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+        modifier = Modifier.padding(horizontal = 12.dp)
     ) {
-        if (isLoading) {
-            LoadingIndicator(Modifier.size(14.dp), color = Secondary)
-        } else {
+        if (faviconUrl.isNotEmpty()) {
             AsyncImage(
                 model = faviconUrl,
-                contentDescription = "Website icon",
-                modifier = Modifier
-                    .size(14.dp)
-                    .clip(RoundedCornerShape(3.dp)),
+                contentDescription = null,
+                modifier = Modifier.size(14.dp).clip(CircleShape),
                 contentScale = ContentScale.Fit
             )
         }
         Spacer(modifier = Modifier.width(6.dp))
-        Text(domainName, fontSize = 12.sp, color = TextSecondary, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(
+            text = domainName,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        if (isLoading) {
+            Spacer(modifier = Modifier.width(6.dp))
+            LoadingIndicator(
+                modifier = Modifier.size(12.dp),
+                color = Secondary
+            )
+        }
     }
 }

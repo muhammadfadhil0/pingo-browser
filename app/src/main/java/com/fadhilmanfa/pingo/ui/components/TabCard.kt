@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,8 +44,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fadhilmanfa.pingo.data.TabItem
-import com.fadhilmanfa.pingo.ui.theme.GreyBorder
-import com.fadhilmanfa.pingo.ui.theme.TextSecondary
 
 private val ActiveTabBorderColor = Color(0xFF1E88E5)
 
@@ -76,11 +75,11 @@ fun TabCard(
                 onClick = onClick
             ),
         shape = RoundedCornerShape(16.dp),
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surfaceVariant,
         border = if (tab.isActive) {
             BorderStroke(2.dp, ActiveTabBorderColor)
         } else {
-            BorderStroke(1.dp, GreyBorder.copy(alpha = 0.5f))
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
         }
     ) {
         Column(
@@ -92,7 +91,7 @@ fun TabCard(
                     .fillMaxWidth()
                     .aspectRatio(1.4f)
                     .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .background(Color(0xFFF8F9FA)),
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
                 contentAlignment = Alignment.Center
             ) {
                 // Show thumbnail if available, otherwise show placeholder icon
@@ -107,7 +106,7 @@ fun TabCard(
                     Icon(
                         imageVector = Icons.Rounded.Language,
                         contentDescription = null,
-                        tint = GreyBorder,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         modifier = Modifier.size(48.dp)
                     )
                 }
@@ -128,7 +127,7 @@ fun TabCard(
                         text = tab.title.ifEmpty { "Tab Baru" },
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -136,7 +135,7 @@ fun TabCard(
                     Text(
                         text = extractDomainFromUrl(tab.url),
                         fontSize = 11.sp,
-                        color = TextSecondary.copy(alpha = 0.7f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -147,14 +146,14 @@ fun TabCard(
                     modifier = Modifier
                         .size(28.dp)
                         .clip(CircleShape)
-                        .background(GreyBorder.copy(alpha = 0.3f))
+                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
                         .clickable(onClick = onClose),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
                         contentDescription = "Tutup Tab",
-                        tint = TextSecondary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
                     )
                 }

@@ -30,6 +30,7 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,9 +43,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fadhilmanfa.pingo.data.HistoryItem
-import com.fadhilmanfa.pingo.ui.theme.Secondary
-import com.fadhilmanfa.pingo.ui.theme.TextPrimary
-import com.fadhilmanfa.pingo.ui.theme.TextSecondary
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -63,7 +61,7 @@ fun HistoryPage(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background)
             .padding(top = statusBarPadding)
     ) {
         // Header
@@ -77,21 +75,21 @@ fun HistoryPage(
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                     contentDescription = "Back",
-                    tint = TextPrimary
+                    tint = MaterialTheme.colorScheme.onBackground
                 )
             }
             Text(
                 text = "Riwayat",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.weight(1f).padding(start = 8.dp)
             )
             IconButton(onClick = onClearHistory) {
                 Icon(
                     imageVector = Icons.Rounded.ClearAll,
                     contentDescription = "Hapus Semua",
-                    tint = Secondary
+                    tint = MaterialTheme.colorScheme.secondary
                 )
             }
         }
@@ -106,12 +104,12 @@ fun HistoryPage(
                         imageVector = Icons.Rounded.History,
                         contentDescription = null,
                         modifier = Modifier.size(64.dp),
-                        tint = TextSecondary.copy(alpha = 0.2f)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "Belum ada riwayat",
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 16.sp
                     )
                 }
@@ -129,7 +127,7 @@ fun HistoryPage(
                     )
                     HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 16.dp),
-                        color = Color(0xFFF5F5F5)
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                     )
                 }
             }
@@ -158,14 +156,14 @@ private fun HistoryListItem(
         Surface(
             modifier = Modifier.size(40.dp),
             shape = CircleShape,
-            color = Color(0xFFF8F9FA)
+            color = MaterialTheme.colorScheme.surfaceVariant
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = Icons.Rounded.Language,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp),
-                    tint = TextSecondary
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -177,7 +175,7 @@ private fun HistoryListItem(
                 text = item.title.ifEmpty { item.url },
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -185,17 +183,17 @@ private fun HistoryListItem(
                 Text(
                     text = formattedTime,
                     fontSize = 12.sp,
-                    color = TextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = " • ",
                     fontSize = 12.sp,
-                    color = TextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = item.url,
                     fontSize = 12.sp,
-                    color = Secondary,
+                    color = MaterialTheme.colorScheme.secondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -206,7 +204,7 @@ private fun HistoryListItem(
             Icon(
                 imageVector = Icons.Rounded.MoreVert,
                 contentDescription = "Opsi",
-                tint = TextSecondary.copy(alpha = 0.5f),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier.size(20.dp)
             )
         }

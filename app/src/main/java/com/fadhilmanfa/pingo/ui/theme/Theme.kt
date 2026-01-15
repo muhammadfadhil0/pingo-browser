@@ -39,10 +39,16 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun PingoTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false, // Disabled for consistent branding
+    themeMode: String = "system", // "light", "dark", "system"
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    val darkTheme = when (themeMode) {
+        "light" -> false
+        "dark" -> true
+        else -> isSystemInDarkTheme()
+    }
+
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
@@ -57,4 +63,3 @@ fun PingoTheme(
         content = content
     )
 }
-
