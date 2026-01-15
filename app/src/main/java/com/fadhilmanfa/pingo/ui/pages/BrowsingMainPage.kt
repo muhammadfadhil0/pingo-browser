@@ -88,6 +88,7 @@ import com.fadhilmanfa.pingo.ui.components.BookmarkBottomSheet
 import com.fadhilmanfa.pingo.ui.components.PullToRefreshWebView
 import com.fadhilmanfa.pingo.ui.components.FabMenuOverlay
 import com.fadhilmanfa.pingo.ui.components.NavBar
+import com.fadhilmanfa.pingo.ui.components.PrewarmComposables
 import com.fadhilmanfa.pingo.ui.components.ScrollDirection
 import com.fadhilmanfa.pingo.ui.components.TabSwitcherBottomSheet
 import com.fadhilmanfa.pingo.ui.components.UrlEditingOverlay
@@ -955,6 +956,9 @@ fun BrowsingMainPage(
         ) {
             Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
                 LoadingIndicator(modifier = Modifier.size(56.dp), color = Secondary)
+                
+                // Pre-warm heavy UI components during loading to prevent jank on first use
+                PrewarmComposables()
             }
         }
     }
