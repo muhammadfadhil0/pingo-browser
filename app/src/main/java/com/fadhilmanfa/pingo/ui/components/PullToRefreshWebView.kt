@@ -11,6 +11,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewGroup
+import android.webkit.DownloadListener
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -181,7 +182,7 @@ class PullRefreshWebAppInterface(
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@SuppressLint("SetJavaScriptEnabled")
+@SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
 @Composable
 fun PullToRefreshWebView(
     modifier: Modifier = Modifier,
@@ -196,6 +197,7 @@ fun PullToRefreshWebView(
     onScrollDirectionChange: (ScrollDirection) -> Unit,
     onScrollYChange: (Int) -> Unit = {},
     onContentExtracted: ((String) -> Unit)? = null,
+    onDownloadStart: ((url: String, userAgent: String, contentDisposition: String, mimetype: String, contentLength: Long) -> Unit)? = null,
     webViewRef: (WebView) -> Unit
 ) {
     val density = LocalDensity.current
@@ -328,6 +330,10 @@ fun PullToRefreshWebView(
                         mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                     }
                     
+                    setDownloadListener { url, userAgent, contentDisposition, mimetype, contentLength ->
+                        onDownloadStart?.invoke(url, userAgent, contentDisposition, mimetype, contentLength)
+                    }
+
                     val adBlockManager = AdBlockManager.getInstance(context)
                     webViewClient = object : WebViewClient() {
                         override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
@@ -368,6 +374,11 @@ fun PullToRefreshWebView(
                     }
                     webViewRef(this)
                     if (savedState != null) restoreState(savedState) else loadUrl(url)
+                }
+            },
+            update = { view ->
+                view.setDownloadListener { url, userAgent, contentDisposition, mimetype, contentLength ->
+                    onDownloadStart?.invoke(url, userAgent, contentDisposition, mimetype, contentLength)
                 }
             }
         )

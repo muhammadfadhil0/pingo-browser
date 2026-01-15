@@ -1,10 +1,18 @@
 package com.fadhilmanfa.pingo.ui.pages
 
+import android.app.DownloadManager
 import android.content.Context
+import android.content.Intent
+import android.database.Cursor
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.os.Parcel
+import android.webkit.MimeTypeMap
+import android.webkit.URLUtil
 import android.webkit.WebView
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -44,6 +52,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -62,11 +71,14 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fadhilmanfa.pingo.data.BookmarkItem
+import com.fadhilmanfa.pingo.data.DownloadItem
+import com.fadhilmanfa.pingo.data.DownloadStatus
 import com.fadhilmanfa.pingo.data.HistoryItem
 import com.fadhilmanfa.pingo.data.TabItem
 import com.fadhilmanfa.pingo.data.remote.GroqRepository
@@ -140,6 +152,7 @@ fun BrowsingMainPage(
     var showAdBlocker by remember { mutableStateOf(false) }
     var showWhitelist by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(false) }
+    var showDownloads by remember { mutableStateOf(false) }
     var showBookmarkSheet by remember { mutableStateOf(false) }
     var tabSheetDragProgress by remember { mutableFloatStateOf(0f) }
     var uiAlpha by remember { mutableFloatStateOf(0f) }
@@ -211,6 +224,32 @@ fun BrowsingMainPage(
         }
         bookmarkList
     }
+
+    val downloadItems = remember {
+        val savedDownloads = sharedPrefs.getStringSet("download_data", null)
+        val downloadList = mutableStateListOf<DownloadItem>()
+        if (savedDownloads != null) {
+            val items = savedDownloads.mapNotNull { data ->
+                val parts = data.split(DATA_DELIMITER)
+                if (parts.size >= 8) {
+                    val androidId = if (parts.size >= 9) parts[8].toLongOrNull() else null
+                    DownloadItem(
+                        id = parts[0],
+                        fileName = parts[1],
+                        url = parts[2],
+                        filePath = parts[3],
+                        totalSize = parts[4].toLongOrNull() ?: 0L,
+                        downloadedSize = parts[5].toLongOrNull() ?: 0L,
+                        status = try { DownloadStatus.valueOf(parts[6]) } catch(e: Exception) { DownloadStatus.COMPLETED },
+                        timestamp = parts[7].toLongOrNull() ?: System.currentTimeMillis(),
+                        androidId = androidId
+                    )
+                } else null
+            }.sortedByDescending { it.timestamp }
+            downloadList.addAll(items)
+        }
+        downloadList
+    }
     
     val webViewInstances = remember { mutableStateMapOf<String, WebView>() }
     
@@ -267,6 +306,11 @@ fun BrowsingMainPage(
     fun persistBookmarks() {
         val dataSet = bookmarkItems.map { "${it.id}$DATA_DELIMITER${it.title}$DATA_DELIMITER${it.url}$DATA_DELIMITER${it.timestamp}" }.toSet()
         sharedPrefs.edit().putStringSet("bookmark_data", dataSet).apply()
+    }
+
+    fun persistDownloads() {
+        val dataSet = downloadItems.map { "${it.id}$DATA_DELIMITER${it.fileName}$DATA_DELIMITER${it.url}$DATA_DELIMITER${it.filePath}$DATA_DELIMITER${it.totalSize}$DATA_DELIMITER${it.downloadedSize}$DATA_DELIMITER${it.status.name}$DATA_DELIMITER${it.timestamp}$DATA_DELIMITER${it.androidId ?: ""}" }.toSet()
+        sharedPrefs.edit().putStringSet("download_data", dataSet).apply()
     }
 
     fun addToHistory(title: String, url: String) {
@@ -329,6 +373,112 @@ fun BrowsingMainPage(
         persistBookmarks()
     }
 
+    fun openDownloadedFile(item: DownloadItem) {
+        if (item.status != DownloadStatus.COMPLETED) return
+        
+        val file = File(item.filePath)
+        if (!file.exists()) {
+            Toast.makeText(context, "File tidak ditemukan", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        try {
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+            
+            val extension = MimeTypeMap.getFileExtensionFromUrl(Uri.fromFile(file).toString())
+            val mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
+            
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, mimeType)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(intent, "Buka dengan"))
+        } catch (e: Exception) {
+            Toast.makeText(context, "Gagal membuka file: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun handleDownload(url: String, userAgent: String, contentDisposition: String, mimetype: String, contentLength: Long) {
+        try {
+            val fileName = URLUtil.guessFileName(url, contentDisposition, mimetype)
+            val request = DownloadManager.Request(Uri.parse(url))
+            request.setMimeType(mimetype)
+            request.addRequestHeader("User-Agent", userAgent)
+            request.setDescription("Mengunduh file...")
+            request.setTitle(fileName)
+            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
+
+            val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            val downloadId = dm.enqueue(request)
+
+            val newItem = DownloadItem(
+                id = UUID.randomUUID().toString(),
+                fileName = fileName,
+                url = url,
+                filePath = "${Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)}/$fileName",
+                totalSize = contentLength,
+                downloadedSize = 0L,
+                status = DownloadStatus.DOWNLOADING,
+                timestamp = System.currentTimeMillis(),
+                androidId = downloadId
+            )
+            downloadItems.add(0, newItem)
+            persistDownloads()
+
+            Toast.makeText(context, "Mulai mengunduh $fileName", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(context, "Gagal mengunduh: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // Logic to update download progress
+    LaunchedEffect(downloadItems.any { it.status == DownloadStatus.DOWNLOADING }) {
+        while (downloadItems.any { it.status == DownloadStatus.DOWNLOADING }) {
+            val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            downloadItems.forEachIndexed { index, item ->
+                if (item.status == DownloadStatus.DOWNLOADING) {
+                    val androidId = item.androidId
+                    if (androidId != null) {
+                        val query = DownloadManager.Query().setFilterById(androidId)
+                        val cursor: Cursor = dm.query(query)
+                        if (cursor.moveToFirst()) {
+                            val bytesDownloaded = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
+                            val bytesTotal = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
+                            val status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+                            
+                            val newStatus = when(status) {
+                                DownloadManager.STATUS_SUCCESSFUL -> DownloadStatus.COMPLETED
+                                DownloadManager.STATUS_FAILED -> DownloadStatus.FAILED
+                                DownloadManager.STATUS_PAUSED -> DownloadStatus.PAUSED
+                                else -> DownloadStatus.DOWNLOADING
+                            }
+                            
+                            if (item.downloadedSize != bytesDownloaded || item.status != newStatus) {
+                                downloadItems[index] = item.copy(
+                                    downloadedSize = bytesDownloaded,
+                                    totalSize = if (bytesTotal > 0) bytesTotal else item.totalSize,
+                                    status = newStatus
+                                )
+                                persistDownloads()
+                            }
+                        } else {
+                            // If cursor is empty, the download might have been cancelled or removed
+                            downloadItems[index] = item.copy(status = DownloadStatus.FAILED)
+                            persistDownloads()
+                        }
+                        cursor.close()
+                    }
+                }
+            }
+            delay(1000) // Update every second
+        }
+    }
+
     val density = LocalDensity.current
     val config = LocalConfiguration.current
     val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -377,12 +527,13 @@ fun BrowsingMainPage(
         }
     }
 
-    BackHandler(enabled = activeTab.canGoBack || showMenu || showTabSheet || isAiModeActive || showSettings || showAdBlocker || showWhitelist || showHistory || showBookmarkSheet) {
+    BackHandler(enabled = activeTab.canGoBack || showMenu || showTabSheet || isAiModeActive || showSettings || showAdBlocker || showWhitelist || showHistory || showBookmarkSheet || showDownloads) {
         when {
             showWhitelist -> showWhitelist = false
             showAdBlocker -> showAdBlocker = false
             showSettings -> showSettings = false
             showHistory -> showHistory = false
+            showDownloads -> showDownloads = false
             showBookmarkSheet -> showBookmarkSheet = false
             isAiModeActive -> isAiModeActive = false
             showTabSheet -> { showTabSheet = false; tabSheetDragProgress = 0f }
@@ -468,6 +619,9 @@ fun BrowsingMainPage(
                                             aiViewModel.setPageContext(markdown)
                                         }
                                     }
+                                },
+                                onDownloadStart = { url, ua, cd, mime, len ->
+                                    handleDownload(url, ua, cd, mime, len)
                                 },
                                 webViewRef = { wv -> 
                                     if (webViewInstances[tab.id] == null) {
@@ -613,7 +767,8 @@ fun BrowsingMainPage(
                 onPingoAI = { isAiModeActive = true },
                 onBookmark = { showBookmarkSheet = true },
                 onSettings = { showSettings = true },
-                onHistory = { showHistory = true }
+                onHistory = { showHistory = true },
+                onDownloads = { showDownloads = true }
             )
         }
 
@@ -768,6 +923,27 @@ fun BrowsingMainPage(
                 onRemoveItem = { item ->
                     historyItems.remove(item)
                     persistHistory()
+                }
+            )
+        }
+
+        AnimatedVisibility(
+            visible = showDownloads,
+            enter = slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) + fadeIn(),
+            exit = slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) + fadeOut(),
+            modifier = Modifier.zIndex(14f)
+        ) {
+            DownloadsPage(
+                downloadItems = downloadItems,
+                onBack = { showDownloads = false },
+                onFileClick = { item -> openDownloadedFile(item) },
+                onClearDownloads = {
+                    downloadItems.clear()
+                    persistDownloads()
+                },
+                onRemoveItem = { item ->
+                    downloadItems.remove(item)
+                    persistDownloads()
                 }
             )
         }
