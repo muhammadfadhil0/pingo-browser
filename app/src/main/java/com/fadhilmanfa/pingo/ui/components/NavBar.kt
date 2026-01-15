@@ -5,7 +5,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -97,14 +96,6 @@ fun NavBar(
 ) {
     val domainName = remember(currentUrl) { extractDomain(currentUrl) }
     val faviconUrl = remember(currentUrl) { getFaviconUrl(currentUrl) }
-    val navBarInteractionSource = remember { MutableInteractionSource() }
-    val isNavBarPressed by navBarInteractionSource.collectIsPressedAsState()
-    
-    val navBarScale by animateFloatAsState(
-        targetValue = if (isNavBarPressed) 0.96f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
-        label = "scale"
-    )
 
     val heightAnim by animateDpAsState(
         targetValue = if (isCollapsed) 36.dp else 60.dp,
@@ -138,7 +129,6 @@ fun NavBar(
             modifier = Modifier
                 .fillMaxWidth(widthFraction)
                 .height(heightAnim)
-                .scale(navBarScale)
                 .shadow(4.dp, RoundedCornerShape(50.dp))
                 .pointerInput(isCollapsed) {
                     if (!isCollapsed) {
@@ -175,8 +165,7 @@ fun NavBar(
                         icon = Icons.AutoMirrored.Rounded.ArrowBackIos,
                         onClick = onBackPressed,
                         enabled = canGoBack,
-                        contentDescription = "Back",
-                        interactionSource = navBarInteractionSource
+                        contentDescription = "Back"
                     )
 
                     UrlBarDisplay(
@@ -195,8 +184,7 @@ fun NavBar(
                             icon = Icons.Rounded.MoreVert,
                             onClick = onMenuToggle,
                             enabled = true,
-                            contentDescription = "Menu",
-                            interactionSource = navBarInteractionSource
+                            contentDescription = "Menu"
                         )
                     }
                 }
@@ -247,14 +235,27 @@ private fun NavButton(
     onClick: () -> Unit,
     enabled: Boolean,
     contentDescription: String,
-    interactionSource: MutableInteractionSource,
     modifier: Modifier = Modifier
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.85f else 1f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        label = "navButtonScale"
+    )
+
     Box(
         modifier = modifier
             .size(44.dp)
+            .scale(scale)
             .clip(CircleShape)
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                enabled = enabled, 
+                onClick = onClick
+            ),
         contentAlignment = Alignment.Center
     ) {
         Icon(
@@ -268,8 +269,25 @@ private fun NavButton(
 
 @Composable
 private fun TabCountButton(count: Int, onClick: () -> Unit, enabled: Boolean = true) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.85f else 1f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        label = "tabButtonScale"
+    )
+
     Box(
-        modifier = Modifier.size(44.dp).clip(CircleShape).clickable(enabled = enabled, onClick = onClick),
+        modifier = Modifier
+            .size(44.dp)
+            .scale(scale)
+            .clip(CircleShape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                enabled = enabled, 
+                onClick = onClick
+            ),
         contentAlignment = Alignment.Center
     ) {
         Surface(
@@ -300,10 +318,24 @@ private fun UrlBarDisplay(
     onClick: () -> Unit,
     enabled: Boolean = true
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        label = "urlBarScale"
+    )
+
     Surface(
         modifier = modifier
             .height(42.dp)
-            .clickable(enabled = enabled, onClick = onClick),
+            .scale(scale)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                enabled = enabled, 
+                onClick = onClick
+            ),
         shape = RoundedCornerShape(21.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
