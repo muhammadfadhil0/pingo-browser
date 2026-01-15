@@ -37,7 +37,7 @@ import kotlin.math.abs
 import kotlin.math.min
 
 /**
- * WebView dengan dukungan Pull-To-Refresh terintegrasi yang responsif.
+ * WebView dengan dukungan Pull-To-Refresh terintegrasi yang lebih mulus.
  */
 @SuppressLint("ClickableViewAccessibility")
 class PullRefreshWebView(context: Context) : WebView(context) {
@@ -50,8 +50,8 @@ class PullRefreshWebView(context: Context) : WebView(context) {
     private var isPulling = false
     private var pullDistance = 0f
     
-    private val pullThresholdDp = 75f 
-    private val maxPullDistanceDp = 160f
+    private val pullThresholdDp = 80f 
+    private val maxPullDistanceDp = 180f
     private var pullThresholdPx = 0f
     private var maxPullDistancePx = 0f
     
@@ -59,13 +59,32 @@ class PullRefreshWebView(context: Context) : WebView(context) {
     
     private var lastScrollYPos = 0
     private var lastScrollTime = 0L
-    private val scrollThrottleMs = 80L
+    private val scrollThrottleMs = 100L
     
     init {
         overScrollMode = View.OVER_SCROLL_NEVER
         val density = context.resources.displayMetrics.density
         pullThresholdPx = pullThresholdDp * density
         maxPullDistancePx = maxPullDistanceDp * density
+    }
+
+    override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
+        val y = event.y
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                startY = y
+                isPulling = false
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val isAtTop = scrollY == 0
+                val totalDeltaY = y - startY
+                // Cegah WebView scroll jika kita mulai menarik ke bawah dari posisi paling atas
+                if (isAtTop && totalDeltaY > touchSlop) {
+                    return true 
+                }
+            }
+        }
+        return super.onInterceptTouchEvent(event)
     }
     
     @SuppressLint("ClickableViewAccessibility")
@@ -83,27 +102,24 @@ class PullRefreshWebView(context: Context) : WebView(context) {
                 val isAtTop = scrollY == 0
                 val totalDeltaY = y - startY
                 
-                // Deteksi inisiasi pull
                 if (isAtTop && !isPulling && totalDeltaY > touchSlop) {
                     isPulling = true
+                    startY = y - touchSlop // Hindari loncatan saat mulai menarik
                 }
                 
                 if (isPulling) {
-                    // Batalkan jika ditarik balik ke atas melewati titik awal
-                    if (totalDeltaY < 0) {
+                    val currentDeltaY = y - startY
+                    if (currentDeltaY < 0) {
                         isPulling = false
                         onPullProgress?.invoke(0f)
                         return super.onTouchEvent(event)
                     }
                     
-                    // Hitung jarak tarik dengan resistance (0.5f agar terasa stabil)
-                    val rawPull = (totalDeltaY - touchSlop).coerceAtLeast(0f)
-                    pullDistance = min(rawPull * 0.5f, maxPullDistancePx)
+                    // Resistance logic (semakin ditarik semakin berat)
+                    val rawPull = currentDeltaY.coerceAtLeast(0f)
+                    pullDistance = min(rawPull * 0.55f, maxPullDistancePx)
                     
-                    // Beri tahu progress ke UI
                     onPullProgress?.invoke(pullDistance / pullThresholdPx)
-                    
-                    // Konsumsi event agar WebView tidak scrolling
                     return true 
                 }
             }
@@ -131,7 +147,7 @@ class PullRefreshWebView(context: Context) : WebView(context) {
         if (currentTime - lastScrollTime < scrollThrottleMs) return
         
         val delta = t - lastScrollYPos
-        if (abs(delta) > 5) {
+        if (abs(delta) > 10) { // Lebih toleran agar tidak terlalu sensitif
             lastScrollTime = currentTime
             lastScrollYPos = t
             if (delta > 0) onScrollDirectionChange?.invoke(ScrollDirection.DOWN)
@@ -187,19 +203,20 @@ fun PullToRefreshWebView(
     var pullProgress by remember { mutableFloatStateOf(0f) }
     var isRefreshing by remember { mutableStateOf(false) }
     var shouldBounceBack by remember { mutableStateOf(false) }
-    var loadingStartTime by remember { mutableStateOf(0L) }
+    var loadingStartTime by remember { mutableLongStateOf(0L) }
     val minLoadingDuration = 600L
     
-    val animatedProgress by animateFloatAsState(
+    // Kita gunakan State object agar pembacaan value di graphicsLayer tidak memicu recomposition seluruh WebView
+    val animatedProgressState = animateFloatAsState(
         targetValue = when {
             isRefreshing -> 1f
             shouldBounceBack -> 0f
             else -> pullProgress
         },
         animationSpec = if (shouldBounceBack || isRefreshing) {
-            spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)
+            spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
         } else {
-            snap() // Snap agar indikator mengikuti jari secara instan saat drag
+            snap() 
         },
         label = "PullProgress",
         finishedListener = { finalValue ->
@@ -226,26 +243,29 @@ fun PullToRefreshWebView(
     }
     
     Box(modifier = modifier) {
-        val indicatorOffset = with(density) { (min(animatedProgress, 1.4f) * 85f).dp }
-        val indicatorScale = min(animatedProgress, 1f)
-        val indicatorAlpha = min(animatedProgress * 2f, 1f)
-        
-        if (animatedProgress > 0.01f || isRefreshing) {
+        // Indikator Pull-to-Refresh
+        if (animatedProgressState.value > 0.01f || isRefreshing) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .zIndex(10f)
-                    .offset(y = indicatorOffset - 48.dp),
+                    .graphicsLayer {
+                        val progress = animatedProgressState.value
+                        val thresholdPx = 80.dp.toPx()
+                        
+                        // Gunakan translationY daripada Modifier.offset agar lebih mulus
+                        translationY = (min(progress, 1.5f) * thresholdPx) - 60.dp.toPx()
+                        
+                        scaleX = min(progress, 1f)
+                        scaleY = min(progress, 1f)
+                        alpha = (progress * 2f).coerceIn(0f, 1f)
+                    },
                 contentAlignment = Alignment.TopCenter
             ) {
                 Box(
-                    modifier = Modifier
-                        .graphicsLayer {
-                            scaleX = indicatorScale
-                            scaleY = indicatorScale
-                            alpha = indicatorAlpha
-                            rotationZ = if (isRefreshing) spinRotation else animatedProgress * 160f
-                        }
+                    modifier = Modifier.graphicsLayer {
+                        rotationZ = if (isRefreshing) spinRotation else animatedProgressState.value * 160f
+                    }
                 ) {
                     if (isRefreshing) {
                         LoadingIndicator(
@@ -254,7 +274,7 @@ fun PullToRefreshWebView(
                         )
                     } else {
                         CircularProgressIndicator(
-                            progress = { min(animatedProgress, 1f) },
+                            progress = { min(animatedProgressState.value, 1f) },
                             modifier = Modifier.size(38.dp),
                             color = Secondary,
                             strokeWidth = 3.dp
@@ -268,7 +288,9 @@ fun PullToRefreshWebView(
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {
-                    translationY = min(animatedProgress * with(density) { 20.dp.toPx() }, with(density) { 50.dp.toPx() })
+                    val progress = animatedProgressState.value
+                    // Halaman ikut turun dengan damping yang lebih natural
+                    translationY = min(progress * 45.dp.toPx(), 90.dp.toPx())
                 },
             factory = { context ->
                 PullRefreshWebView(context).apply {
@@ -318,7 +340,7 @@ fun PullToRefreshWebView(
                                 val elapsed = System.currentTimeMillis() - loadingStartTime
                                 val remainingDelay = (minLoadingDuration - elapsed).coerceAtLeast(0)
                                 
-                                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                Handler(Looper.getMainLooper()).postDelayed({
                                     isRefreshing = false
                                     shouldBounceBack = true
                                 }, remainingDelay)

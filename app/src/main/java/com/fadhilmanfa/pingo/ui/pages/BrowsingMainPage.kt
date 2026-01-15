@@ -101,6 +101,9 @@ private fun captureWebViewThumbnail(webView: WebView, maxWidth: Int = 300): Bitm
     }
 }
 
+// Delimiter yang lebih aman untuk menghindari konflik dengan konten URL/Title
+private const val DATA_DELIMITER = "|||"
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun BrowsingMainPage() {
@@ -140,9 +143,20 @@ fun BrowsingMainPage() {
         val tabList = mutableStateListOf<TabItem>()
         if (savedTabs != null) {
             savedTabs.forEach { data ->
-                val parts = data.split("|")
+                // Coba parsing dengan delimiter baru dulu, jika gagal gunakan yang lama
+                val parts = if (data.contains(DATA_DELIMITER)) {
+                    data.split(DATA_DELIMITER)
+                } else {
+                    data.split("|")
+                }
+
                 if (parts.size >= 4) {
-                    tabList.add(TabItem(id = parts[0], title = parts[1], url = parts[2], isActive = parts[3].toBoolean()))
+                    tabList.add(TabItem(
+                        id = parts[0], 
+                        title = parts[1], 
+                        url = parts[2], 
+                        isActive = parts[3].toBoolean()
+                    ))
                 }
             }
         }
@@ -159,9 +173,15 @@ fun BrowsingMainPage() {
         val historyList = mutableStateListOf<HistoryItem>()
         if (savedHistory != null) {
             val items = savedHistory.mapNotNull { data ->
-                val parts = data.split("|")
+                val parts = if (data.contains(DATA_DELIMITER)) {
+                    data.split(DATA_DELIMITER)
+                } else {
+                    data.split("|")
+                }
+                
                 if (parts.size >= 4) {
-                    HistoryItem(id = parts[0], title = parts[1], url = parts[2], timestamp = parts[3].toLong())
+                    val timestamp = parts[3].toLongOrNull() ?: System.currentTimeMillis()
+                    HistoryItem(id = parts[0], title = parts[1], url = parts[2], timestamp = timestamp)
                 } else null
             }.sortedByDescending { it.timestamp }
             historyList.addAll(items)
@@ -212,12 +232,12 @@ fun BrowsingMainPage() {
     val activeTab = tabs.find { it.isActive } ?: tabs.firstOrNull() ?: TabItem(id = "loading", title = "Pingo", url = "https://www.google.com")
     
     fun persistTabs() {
-        val dataSet = tabs.map { "${it.id}|${it.title}|${it.url}|${it.isActive}" }.toSet()
+        val dataSet = tabs.map { "${it.id}$DATA_DELIMITER${it.title}$DATA_DELIMITER${it.url}$DATA_DELIMITER${it.isActive}" }.toSet()
         sharedPrefs.edit().putStringSet("saved_tabs_data", dataSet).apply()
     }
 
     fun persistHistory() {
-        val dataSet = historyItems.map { "${it.id}|${it.title}|${it.url}|${it.timestamp}" }.toSet()
+        val dataSet = historyItems.map { "${it.id}$DATA_DELIMITER${it.title}$DATA_DELIMITER${it.url}$DATA_DELIMITER${it.timestamp}" }.toSet()
         sharedPrefs.edit().putStringSet("history_data", dataSet).apply()
     }
 
