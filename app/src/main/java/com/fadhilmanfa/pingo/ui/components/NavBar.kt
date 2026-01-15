@@ -96,6 +96,16 @@ fun NavBar(
 ) {
     val domainName = remember(currentUrl) { extractDomain(currentUrl) }
     val faviconUrl = remember(currentUrl) { getFaviconUrl(currentUrl) }
+    
+    // Interaction Source tunggal untuk seluruh NavBar
+    val navBarInteractionSource = remember { MutableInteractionSource() }
+    val isPressed by navBarInteractionSource.collectIsPressedAsState()
+    
+    val navBarScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        label = "navBarScale"
+    )
 
     val heightAnim by animateDpAsState(
         targetValue = if (isCollapsed) 36.dp else 60.dp,
@@ -129,6 +139,7 @@ fun NavBar(
             modifier = Modifier
                 .fillMaxWidth(widthFraction)
                 .height(heightAnim)
+                .scale(navBarScale) // Seluruh Surface yang kena animasi scale
                 .shadow(4.dp, RoundedCornerShape(50.dp))
                 .pointerInput(isCollapsed) {
                     if (!isCollapsed) {
@@ -165,7 +176,8 @@ fun NavBar(
                         icon = Icons.AutoMirrored.Rounded.ArrowBackIos,
                         onClick = onBackPressed,
                         enabled = canGoBack,
-                        contentDescription = "Back"
+                        contentDescription = "Back",
+                        interactionSource = navBarInteractionSource
                     )
 
                     UrlBarDisplay(
@@ -174,17 +186,24 @@ fun NavBar(
                         faviconUrl = faviconUrl,
                         isLoading = isLoading,
                         onClick = onUrlBarTap,
-                        enabled = !isCollapsed
+                        enabled = !isCollapsed,
+                        interactionSource = navBarInteractionSource
                     )
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        TabCountButton(count = tabCount, onClick = onTabButtonClick, enabled = !isCollapsed)
+                        TabCountButton(
+                            count = tabCount, 
+                            onClick = onTabButtonClick, 
+                            enabled = !isCollapsed,
+                            interactionSource = navBarInteractionSource
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
                         NavButton(
                             icon = Icons.Rounded.MoreVert,
                             onClick = onMenuToggle,
                             enabled = true,
-                            contentDescription = "Menu"
+                            contentDescription = "Menu",
+                            interactionSource = navBarInteractionSource
                         )
                     }
                 }
@@ -205,7 +224,7 @@ fun NavBar(
                         modifier = Modifier
                             .fillMaxSize()
                             .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
+                                interactionSource = navBarInteractionSource,
                                 indication = null,
                                 onClick = onTapToExpand
                             )
@@ -235,20 +254,12 @@ private fun NavButton(
     onClick: () -> Unit,
     enabled: Boolean,
     contentDescription: String,
+    interactionSource: MutableInteractionSource,
     modifier: Modifier = Modifier
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.85f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
-        label = "navButtonScale"
-    )
-
     Box(
         modifier = modifier
             .size(44.dp)
-            .scale(scale)
             .clip(CircleShape)
             .clickable(
                 interactionSource = interactionSource,
@@ -268,19 +279,15 @@ private fun NavButton(
 }
 
 @Composable
-private fun TabCountButton(count: Int, onClick: () -> Unit, enabled: Boolean = true) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.85f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
-        label = "tabButtonScale"
-    )
-
+private fun TabCountButton(
+    count: Int, 
+    onClick: () -> Unit, 
+    enabled: Boolean = true,
+    interactionSource: MutableInteractionSource
+) {
     Box(
         modifier = Modifier
             .size(44.dp)
-            .scale(scale)
             .clip(CircleShape)
             .clickable(
                 interactionSource = interactionSource,
@@ -316,20 +323,12 @@ private fun UrlBarDisplay(
     faviconUrl: String,
     isLoading: Boolean,
     onClick: () -> Unit,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    interactionSource: MutableInteractionSource
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.98f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
-        label = "urlBarScale"
-    )
-
     Surface(
         modifier = modifier
             .height(42.dp)
-            .scale(scale)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,

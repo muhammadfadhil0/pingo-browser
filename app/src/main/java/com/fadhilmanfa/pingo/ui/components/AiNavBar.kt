@@ -90,6 +90,16 @@ fun AiNavBar(
     var text by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    
+    // Interaction Source tunggal untuk seluruh AiNavBar
+    val barInteractionSource = remember { MutableInteractionSource() }
+    val isBarPressed by barInteractionSource.collectIsPressedAsState()
+    
+    val barScale by animateFloatAsState(
+        targetValue = if (isBarPressed) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        label = "aiBarScale"
+    )
 
     LaunchedEffect(Unit) {
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -124,6 +134,7 @@ fun AiNavBar(
         horizontalAlignment = Alignment.End,
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        // ... (AnimatedVisibility loading tetap sama)
         AnimatedVisibility(
             visible = isLoading,
             enter = fadeIn() + expandVertically(),
@@ -178,6 +189,7 @@ fun AiNavBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 64.dp)
+                .scale(barScale) // Seluruh Bar AI mengecil
                 .shadow(
                     elevation = 6.dp,
                     shape = RoundedCornerShape(28.dp),
@@ -271,23 +283,14 @@ fun AiNavBar(
                     enter = fadeIn(fadeSpec) + expandHorizontally(animationSpec = morphSpec, expandFrom = Alignment.End),
                     exit = fadeOut(fadeSpec) + shrinkHorizontally(animationSpec = morphSpec, shrinkTowards = Alignment.End)
                 ) {
-                    val sendInteractionSource = remember { MutableInteractionSource() }
-                    val sendIsPressed by sendInteractionSource.collectIsPressedAsState()
-                    val sendScale by animateFloatAsState(
-                        targetValue = if (sendIsPressed) 0.85f else 1f,
-                        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
-                        label = "sendButtonScale"
-                    )
-
                     Box(
                         modifier = Modifier
                             .padding(bottom = 2.dp, start = 8.dp)
                             .size(44.dp)
-                            .scale(sendScale)
                             .clip(CircleShape)
                             .background(aiGradient)
                             .clickable(
-                                interactionSource = sendInteractionSource,
+                                interactionSource = barInteractionSource, // Gunakan barInteractionSource
                                 indication = null,
                                 enabled = !isLoading
                             ) {
@@ -308,22 +311,13 @@ fun AiNavBar(
                     }
                 }
 
-                val closeInteractionSource = remember { MutableInteractionSource() }
-                val closeIsPressed by closeInteractionSource.collectIsPressedAsState()
-                val closeScale by animateFloatAsState(
-                    targetValue = if (closeIsPressed) 0.85f else 1f,
-                    animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
-                    label = "closeButtonScale"
-                )
-
                 Box(
                     modifier = Modifier
                         .padding(bottom = 2.dp, start = 4.dp)
                         .size(44.dp)
-                        .scale(closeScale)
                         .clip(CircleShape)
                         .clickable(
-                            interactionSource = closeInteractionSource,
+                            interactionSource = barInteractionSource, // Gunakan barInteractionSource
                             indication = null
                         ) { 
                             focusManager.clearFocus()
