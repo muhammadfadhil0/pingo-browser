@@ -24,6 +24,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -771,6 +772,12 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                                     onDownloadStart = { url, ua, cd, mime, len ->
                                         handleDownload(url, ua, cd, mime, len)
                                     },
+                                    isDarkTheme =
+                                            when (currentTheme) {
+                                                "light" -> false
+                                                "dark" -> true
+                                                else -> isSystemInDarkTheme()
+                                            },
                                     webViewRef = { wv ->
                                         if (webViewInstances[tab.id] == null) {
                                             webViewInstances[tab.id] = wv
@@ -1124,11 +1131,7 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                         slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
                                 fadeOut(),
                 modifier = Modifier.zIndex(11f)
-        ) {
-            GeneralSettingsPage(
-                    onBack = { showGeneralSettings = false }
-            )
-        }
+        ) { GeneralSettingsPage(onBack = { showGeneralSettings = false }) }
 
         AnimatedVisibility(
                 visible = showAppearanceSettings,
@@ -1156,11 +1159,7 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                         slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
                                 fadeOut(),
                 modifier = Modifier.zIndex(13f)
-        ) {
-            StartPageSettingsPage(
-                    onBack = { showStartPageSettings = false }
-            )
-        }
+        ) { StartPageSettingsPage(onBack = { showStartPageSettings = false }) }
 
         AnimatedVisibility(
                 visible = showPrivacySettings,
@@ -1171,11 +1170,7 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                         slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
                                 fadeOut(),
                 modifier = Modifier.zIndex(14f)
-        ) {
-            PrivacySettingsPage(
-                    onBack = { showPrivacySettings = false }
-            )
-        }
+        ) { PrivacySettingsPage(onBack = { showPrivacySettings = false }) }
 
         AnimatedVisibility(
                 visible = showSearchSettings,
@@ -1186,11 +1181,7 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                         slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
                                 fadeOut(),
                 modifier = Modifier.zIndex(15f)
-        ) {
-            SearchSettingsPage(
-                    onBack = { showSearchSettings = false }
-            )
-        }
+        ) { SearchSettingsPage(onBack = { showSearchSettings = false }) }
 
         AnimatedVisibility(
                 visible = showNotificationSettings,
@@ -1201,11 +1192,7 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                         slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
                                 fadeOut(),
                 modifier = Modifier.zIndex(16f)
-        ) {
-            NotificationSettingsPage(
-                    onBack = { showNotificationSettings = false }
-            )
-        }
+        ) { NotificationSettingsPage(onBack = { showNotificationSettings = false }) }
 
         AnimatedVisibility(
                 visible = showDownloadSettings,
@@ -1216,11 +1203,7 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                         slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
                                 fadeOut(),
                 modifier = Modifier.zIndex(17f)
-        ) {
-            DownloadSettingsPage(
-                    onBack = { showDownloadSettings = false }
-            )
-        }
+        ) { DownloadSettingsPage(onBack = { showDownloadSettings = false }) }
 
         AnimatedVisibility(
                 visible = showHelpSettings,
@@ -1231,11 +1214,7 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                         slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
                                 fadeOut(),
                 modifier = Modifier.zIndex(18f)
-        ) {
-            HelpSettingsPage(
-                    onBack = { showHelpSettings = false }
-            )
-        }
+        ) { HelpSettingsPage(onBack = { showHelpSettings = false }) }
 
         AnimatedVisibility(
                 visible = showAboutSettings,
@@ -1246,11 +1225,7 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                         slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) +
                                 fadeOut(),
                 modifier = Modifier.zIndex(19f)
-        ) {
-            AboutSettingsPage(
-                    onBack = { showAboutSettings = false }
-            )
-        }
+        ) { AboutSettingsPage(onBack = { showAboutSettings = false }) }
 
         AnimatedVisibility(
                 visible = showAdBlocker,

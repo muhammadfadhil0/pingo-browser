@@ -28,6 +28,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
+import androidx.webkit.WebSettingsCompat
+import androidx.webkit.WebViewFeature
 import com.fadhilmanfa.pingo.data.adblock.AdBlockManager
 import com.fadhilmanfa.pingo.ui.theme.Secondary
 import java.io.ByteArrayInputStream
@@ -210,6 +212,7 @@ fun PullToRefreshWebView(
                         mimetype: String,
                         contentLength: Long) -> Unit)? =
                 null,
+        isDarkTheme: Boolean = false,
         webViewRef: (WebView) -> Unit
 ) {
     val density = LocalDensity.current
@@ -353,6 +356,24 @@ fun PullToRefreshWebView(
                             mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                         }
 
+                        // Configure WebView dark/light theme to match app theme
+                        if (WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)
+                        ) {
+                            WebSettingsCompat.setAlgorithmicDarkeningAllowed(settings, isDarkTheme)
+                        } else if (WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {
+                            @Suppress("DEPRECATION")
+                            WebSettingsCompat.setForceDark(
+                                    settings,
+                                    if (isDarkTheme) WebSettingsCompat.FORCE_DARK_ON
+                                    else WebSettingsCompat.FORCE_DARK_OFF
+                            )
+                        }
+
+                        // Set background color based on theme
+                        setBackgroundColor(
+                                if (isDarkTheme) Color.parseColor("#121212") else Color.WHITE
+                        )
+
                         setDownloadListener {
                                 url,
                                 userAgent,
@@ -445,6 +466,21 @@ fun PullToRefreshWebView(
                     }
                 },
                 update = { view ->
+                    // Dynamically update WebView dark/light theme when app theme changes
+                    if (WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) {
+                        WebSettingsCompat.setAlgorithmicDarkeningAllowed(view.settings, isDarkTheme)
+                    } else if (WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {
+                        @Suppress("DEPRECATION")
+                        WebSettingsCompat.setForceDark(
+                                view.settings,
+                                if (isDarkTheme) WebSettingsCompat.FORCE_DARK_ON
+                                else WebSettingsCompat.FORCE_DARK_OFF
+                        )
+                    }
+                    view.setBackgroundColor(
+                            if (isDarkTheme) Color.parseColor("#121212") else Color.WHITE
+                    )
+
                     view.setDownloadListener {
                             url,
                             userAgent,

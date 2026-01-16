@@ -267,7 +267,7 @@ fun AiNavBar(
                         ) {
                             if (text.isEmpty()) {
                                 Text(
-                                    text = "Tanya Pingo AI...",
+                                    text = "Tanyakan tentang halaman ini",
                                     fontSize = 14.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                     fontWeight = FontWeight.Medium
