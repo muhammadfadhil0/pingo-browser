@@ -50,9 +50,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import coil.compose.AsyncImagePainter
-import coil.compose.rememberAsyncImagePainter
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
 import com.fadhilmanfa.pingo.ui.theme.Secondary
 import kotlinx.coroutines.launch
 
@@ -544,29 +543,37 @@ private fun UrlBarDisplay(
                                         strokeWidth = 2.dp
                                 )
                         } else if (faviconUrl.isNotEmpty()) {
-                                val painter = rememberAsyncImagePainter(model = faviconUrl)
-                                val painterState = painter.state
-
-                                if (painterState is AsyncImagePainter.State.Error ||
-                                                painterState is AsyncImagePainter.State.Empty
-                                ) {
-                                        // Fallback to globe icon when favicon fails
-                                        Icon(
-                                                imageVector = Icons.Rounded.Language,
-                                                contentDescription = null,
-                                                tint =
-                                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                                                .copy(alpha = 0.7f),
-                                                modifier = Modifier.size(16.dp)
-                                        )
-                                } else {
-                                        AsyncImage(
-                                                model = faviconUrl,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(16.dp).clip(CircleShape),
-                                                contentScale = ContentScale.Fit
-                                        )
-                                }
+                                SubcomposeAsyncImage(
+                                        model = faviconUrl,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp).clip(CircleShape),
+                                        contentScale = ContentScale.Fit,
+                                        loading = {
+                                                Icon(
+                                                        imageVector = Icons.Rounded.Language,
+                                                        contentDescription = null,
+                                                        tint =
+                                                                MaterialTheme.colorScheme
+                                                                        .onSurfaceVariant.copy(
+                                                                        alpha = 0.4f
+                                                                ),
+                                                        modifier = Modifier.size(16.dp)
+                                                )
+                                        },
+                                        error = {
+                                                Icon(
+                                                        imageVector = Icons.Rounded.Language,
+                                                        contentDescription = null,
+                                                        tint =
+                                                                MaterialTheme.colorScheme
+                                                                        .onSurfaceVariant.copy(
+                                                                        alpha = 0.7f
+                                                                ),
+                                                        modifier = Modifier.size(16.dp)
+                                                )
+                                        },
+                                        success = { SubcomposeAsyncImageContent() }
+                                )
                         } else {
                                 Icon(
                                         imageVector = Icons.Rounded.Language,
@@ -606,30 +613,33 @@ private fun CollapsedUrlDisplay(domainName: String, faviconUrl: String, isLoadin
                                 strokeWidth = 2.dp
                         )
                 } else if (faviconUrl.isNotEmpty()) {
-                        val painter = rememberAsyncImagePainter(model = faviconUrl)
-                        val painterState = painter.state
-
-                        if (painterState is AsyncImagePainter.State.Error ||
-                                        painterState is AsyncImagePainter.State.Empty
-                        ) {
-                                // Fallback to globe icon when favicon fails
-                                Icon(
-                                        imageVector = Icons.Rounded.Language,
-                                        contentDescription = null,
-                                        tint =
-                                                MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                                        alpha = 0.7f
-                                                ),
-                                        modifier = Modifier.size(14.dp)
-                                )
-                        } else {
-                                AsyncImage(
-                                        model = faviconUrl,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(14.dp).clip(CircleShape),
-                                        contentScale = ContentScale.Fit
-                                )
-                        }
+                        SubcomposeAsyncImage(
+                                model = faviconUrl,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp).clip(CircleShape),
+                                contentScale = ContentScale.Fit,
+                                loading = {
+                                        Icon(
+                                                imageVector = Icons.Rounded.Language,
+                                                contentDescription = null,
+                                                tint =
+                                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                                                .copy(alpha = 0.4f),
+                                                modifier = Modifier.size(14.dp)
+                                        )
+                                },
+                                error = {
+                                        Icon(
+                                                imageVector = Icons.Rounded.Language,
+                                                contentDescription = null,
+                                                tint =
+                                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                                                .copy(alpha = 0.7f),
+                                                modifier = Modifier.size(14.dp)
+                                        )
+                                },
+                                success = { SubcomposeAsyncImageContent() }
+                        )
                 } else {
                         // Fallback to globe icon when no favicon URL
                         Icon(
