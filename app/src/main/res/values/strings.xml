@@ -1,3 +1,123 @@
 <resources>
     <string name="app_name">Pingo Browser</string>
+    <string name="settings_title">Pengaturan</string>
+    <string name="settings_general">Umum</string>
+    <string name="settings_appearance">Tampilan</string>
+    <string name="settings_start_page">Halaman Mulai</string>
+    <string name="settings_privacy">Privasi</string>
+    <string name="settings_search">Pencarian</string>
+    <string name="settings_notifications">Notifikasi</string>
+    <string name="settings_downloads">Unduhan</string>
+    <string name="settings_help">Bantuan</string>
+    <string name="settings_about">Tentang Pingo</string>
+    
+    <string name="settings_language">Bahasa</string>
+    <string name="settings_language_subtitle">Pilih bahasa aplikasi</string>
+    <string name="settings_default_browser">Browser Default</string>
+    <string name="settings_default_browser_subtitle">Atur Pingo sebagai browser utama</string>
+    <string name="settings_select_language">Pilih Bahasa</string>
+    <string name="language_indonesian">Bahasa Indonesia</string>
+    <string name="language_english">English</string>
+    
+    <string name="settings_general_subtitle" translatable="false">Bahasa, Default browser</string>
+    <string name="settings_appearance_subtitle">Tema, layout, ukuran teks</string>
+    <string name="settings_start_page_subtitle">Wallpaper, Speed dials, Rekomendasi</string>
+    <string name="settings_privacy_subtitle">Pengaturan situs, perizinan, kuki</string>
+    <string name="settings_search_subtitle">Mesin pencarian Anda</string>
+    <string name="settings_notifications_subtitle">Push notifikasi, sistem</string>
+    <string name="settings_downloads_subtitle">Antrean, folder, konfirmasi</string>
+    <string name="settings_help_subtitle">FAQs, lapor kesalahan, sosial</string>
+    <string name="settings_about_subtitle">Pembaruan, versi</string>
+    
+    <string name="theme_title">Pilih Tema</string>
+    <string name="theme_light">Terang</string>
+    <string name="theme_dark">Gelap</string>
+    <string name="theme_system">Ikuti Perangkat</string>
+    
+    <string name="adblock_title">Pemblokir Iklan</string>
+    <string name="status_active">Aktif</string>
+    <string name="status_inactive">Tidak Aktif</string>
+    
+    <string name="msg_default_browser_already">Pingo sudah menjadi browser default</string>
+    
+    <!-- AI Bar Strings -->
+    <string name="ai_placeholder">Tanyakan tentang halaman ini</string>
+    <string name="ai_processing">Memproses jawaban Anda...</string>
+    <string name="ai_suggest_summarize">Ringkaskan</string>
+    <string name="ai_suggest_summarize_prompt">Ringkaskan halaman ini</string>
+    <string name="ai_suggest_explain">Jelaskan</string>
+    <string name="ai_suggest_explain_prompt">Jelaskan isi halaman ini</string>
+    <string name="ai_suggest_translate">Terjemahkan</string>
+    <string name="ai_suggest_translate_prompt">Terjemahkan halaman ini ke Bahasa Indonesia</string>
+    
+    <!-- Common Actions -->
+    <string name="action_back">Kembali</string>
+    
+    <!-- FabMenu Strings -->
+    <string name="fab_stop">Berhenti</string>
+    <string name="fab_refresh">Muat Ulang</string>
+    <string name="fab_settings">Pengaturan</string>
+    <string name="fab_downloads">Unduhan</string>
+    <string name="fab_history">Riwayat</string>
+    <string name="fab_bookmark">Bookmark</string>
+    <string name="fab_forward">Maju</string>
+    <string name="fab_pingo_ai">Pingo AI</string>
+    <string name="fab_back">Kembali</string>
+    
+    <!-- Downloads Page Strings -->
+    <string name="downloads_title">Unduhan</string>
+    <string name="downloads_clear_all">Hapus Semua</string>
+    <string name="downloads_empty">Belum ada unduhan</string>
+    <string name="downloads_completed">Selesai</string>
+    <string name="downloads_options">Opsi</string>
+    
+    <!-- History Page Strings -->
+    <string name="history_title">Riwayat</string>
+    <string name="history_clear_all">Hapus Semua</string>
+    <string name="history_empty">Belum ada riwayat</string>
+    <string name="history_options">Opsi</string>
+    
+    <!-- Bookmark BottomSheet Strings -->
+    <string name="bookmark_active_page">Halaman Aktif</string>
+    <string name="bookmark_no_title">Tanpa Judul</string>
+    <string name="bookmark_saved_pages">Halaman yang Anda simpan</string>
+    <string name="bookmark_empty">Belum ada bookmark</string>
+    <string name="bookmark_delete">Hapus</string>
+    
+    <!-- Start Page Submenu Strings -->
+    <string name="start_page_wallpaper">Wallpaper</string>
+    <string name="start_page_speed_dials">Speed Dials</string>
+    <string name="start_page_recommendations">Situs Rekomendasi</string>
+    
+    <!-- Privacy Submenu Strings -->
+    <string name="privacy_ad_blocker">Pemblokir Iklan</string>
+    <string name="privacy_safe_browsing">Penjelajahan Aman</string>
+    <string name="privacy_prevent_popups">Cegah Pop-up</string>
+    <string name="privacy_site_settings">Pengaturan Situs</string>
+    <string name="privacy_cookies">Kuki</string>
+    <string name="privacy_dns">DNS</string>
+    <string name="privacy_clear_on_exit">Hapus Data Saat Keluar</string>
+    <string name="privacy_clear_data">Hapus Data Jelajah</string>
+    
+    <!-- Search Submenu Strings -->
+    <string name="search_engine">Mesin Pencari</string>
+    <string name="search_pingo_ai">Pingo AI</string>
+    
+    <!-- Notifications Submenu Strings -->
+    <string name="notifications_push">Push Notifikasi</string>
+    
+    <!-- Download Settings Submenu Strings -->
+    <string name="downloads_ask_before">Tanya Sebelum Unduh</string>
+    <string name="downloads_queue">Antrean Unduhan</string>
+    <string name="downloads_folder">Folder Unduh</string>
+    
+    <!-- Help Submenu Strings -->
+    <string name="help_faq">FAQ</string>
+    <string name="help_report_bug">Laporkan Bug</string>
+    <string name="help_feedback">Kirimkan Feedback</string>
+    
+    <!-- About Submenu Strings -->
+    <string name="about_version">Versi</string>
+    <string name="about_tos">Ketentuan Layanan</string>
+    <string name="about_third_party">Aplikasi Pihak Ketiga</string>
 </resources>

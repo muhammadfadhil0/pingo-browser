@@ -19,39 +19,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.AutoFixHigh
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Description
-import androidx.compose.material.icons.rounded.Send
-import androidx.compose.material.icons.rounded.Translate
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,18 +42,20 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fadhilmanfa.pingo.R
 import com.fadhilmanfa.pingo.ui.theme.Secondary
 
 private data class AiSuggestion(
     val icon: ImageVector,
-    val label: String,
-    val prompt: String
+    val labelResId: Int,
+    val promptResId: Int
 )
 
 @Composable
@@ -107,9 +86,9 @@ fun AiNavBar(
 
     val suggestions = remember {
         listOf(
-            AiSuggestion(Icons.Rounded.AutoFixHigh, "Ringkaskan", "Ringkaskan halaman ini"),
-            AiSuggestion(Icons.Rounded.Description, "Jelaskan", "Jelaskan isi halaman ini"),
-            AiSuggestion(Icons.Rounded.Translate, "Terjemahkan", "Terjemahkan halaman ini ke Bahasa Indonesia")
+            AiSuggestion(Icons.Rounded.AutoFixHigh, R.string.ai_suggest_summarize, R.string.ai_suggest_summarize_prompt),
+            AiSuggestion(Icons.Rounded.Description, R.string.ai_suggest_explain, R.string.ai_suggest_explain_prompt),
+            AiSuggestion(Icons.Rounded.Translate, R.string.ai_suggest_translate, R.string.ai_suggest_translate_prompt)
         )
     }
 
@@ -134,7 +113,6 @@ fun AiNavBar(
         horizontalAlignment = Alignment.End,
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // ... (AnimatedVisibility loading tetap sama)
         AnimatedVisibility(
             visible = isLoading,
             enter = fadeIn() + expandVertically(),
@@ -157,7 +135,7 @@ fun AiNavBar(
                         color = Secondary
                     )
                     Text(
-                        text = "Memproses jawaban Anda...",
+                        text = stringResource(R.string.ai_processing),
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Medium
@@ -176,10 +154,11 @@ fun AiNavBar(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 suggestions.forEach { item ->
+                    val prompt = stringResource(item.promptResId)
                     AiSuggestionPill(
                         icon = item.icon,
-                        label = item.label,
-                        onClick = { text = item.prompt }
+                        label = stringResource(item.labelResId),
+                        onClick = { text = prompt }
                     )
                 }
             }
@@ -189,7 +168,7 @@ fun AiNavBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 64.dp)
-                .scale(barScale) // Seluruh Bar AI mengecil
+                .scale(barScale)
                 .shadow(
                     elevation = 6.dp,
                     shape = RoundedCornerShape(28.dp),
@@ -267,7 +246,7 @@ fun AiNavBar(
                         ) {
                             if (text.isEmpty()) {
                                 Text(
-                                    text = "Tanyakan tentang halaman ini",
+                                    text = stringResource(R.string.ai_placeholder),
                                     fontSize = 14.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                     fontWeight = FontWeight.Medium
@@ -290,7 +269,7 @@ fun AiNavBar(
                             .clip(CircleShape)
                             .background(aiGradient)
                             .clickable(
-                                interactionSource = barInteractionSource, // Gunakan barInteractionSource
+                                interactionSource = barInteractionSource,
                                 indication = null,
                                 enabled = !isLoading
                             ) {
@@ -317,7 +296,7 @@ fun AiNavBar(
                         .size(44.dp)
                         .clip(CircleShape)
                         .clickable(
-                            interactionSource = barInteractionSource, // Gunakan barInteractionSource
+                            interactionSource = barInteractionSource,
                             indication = null
                         ) { 
                             focusManager.clearFocus()

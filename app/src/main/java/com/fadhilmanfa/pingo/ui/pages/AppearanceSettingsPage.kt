@@ -1,407 +1,326 @@
 package com.fadhilmanfa.pingo.ui.pages
 
-import android.content.Context
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.AutoMode
 import androidx.compose.material.icons.rounded.DarkMode
-import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.Height
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Smartphone
-import androidx.compose.material.icons.rounded.VerticalAlignBottom
-import androidx.compose.material.icons.rounded.VerticalAlignTop
-import androidx.compose.material.icons.rounded.ViewHeadline
 import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fadhilmanfa.pingo.ui.theme.Secondary
+import com.fadhilmanfa.pingo.R
+import kotlinx.coroutines.delay
+
+private data class AppearanceMenuItem(
+        val icon: ImageVector,
+        val label: String,
+        val onClick: () -> Unit
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppearanceSettingsPage(
-    onBack: () -> Unit,
-    currentTheme: String,
-    onThemeChanged: (String) -> Unit
+        onBack: () -> Unit,
+        currentTheme: String,
+        onThemeChanged: (String) -> Unit
 ) {
     val context = LocalContext.current
-    val sharedPrefs = remember { context.getSharedPreferences("pingo_settings", Context.MODE_PRIVATE) }
-    
-    var forceDarkWeb by remember { 
-        mutableStateOf(sharedPrefs.getBoolean("force_dark_web", false)) 
-    }
-    var addressBarPos by remember { 
-        mutableStateOf(sharedPrefs.getString("address_bar_position", "auto") ?: "auto") 
-    }
-    var preventMiniNavbar by remember { 
-        mutableStateOf(sharedPrefs.getBoolean("prevent_mini_navbar", false)) 
-    }
-
-    var showAddressBarSheet by remember { mutableStateOf(false) }
-
     val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(top = statusBarPadding)
-    ) {
-        // Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onBackground
-                )
-            }
-            Text(
-                text = "Tampilan",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(start = 8.dp)
-            )
-        }
+    // FabMenu state
+    var showFabMenu by remember { mutableStateOf(false) }
+    var showThemeMenu by remember { mutableStateOf(false) }
 
+    // Labels
+    val themeLabel = stringResource(R.string.settings_appearance)
+    val backLabel = stringResource(R.string.fab_back)
+    val systemLabel = stringResource(R.string.theme_system)
+    val lightLabel = stringResource(R.string.theme_light)
+    val darkLabel = stringResource(R.string.theme_dark)
+
+    // Main menu items
+    val mainMenuItems =
+            listOf(
+                    AppearanceMenuItem(
+                            icon = Icons.Rounded.Palette,
+                            label = themeLabel,
+                            onClick = { showThemeMenu = true }
+                    )
+            )
+
+    // Theme submenu items
+    val themeMenuItems =
+            listOf(
+                    AppearanceMenuItem(
+                            icon = Icons.AutoMirrored.Rounded.ArrowBack,
+                            label = backLabel,
+                            onClick = { showThemeMenu = false }
+                    ),
+                    AppearanceMenuItem(
+                            icon = Icons.Rounded.Smartphone,
+                            label = systemLabel,
+                            onClick = {
+                                onThemeChanged("system")
+                                showFabMenu = false
+                                showThemeMenu = false
+                            }
+                    ),
+                    AppearanceMenuItem(
+                            icon = Icons.Rounded.WbSunny,
+                            label = lightLabel,
+                            onClick = {
+                                onThemeChanged("light")
+                                showFabMenu = false
+                                showThemeMenu = false
+                            }
+                    ),
+                    AppearanceMenuItem(
+                            icon = Icons.Rounded.DarkMode,
+                            label = darkLabel,
+                            onClick = {
+                                onThemeChanged("dark")
+                                showFabMenu = false
+                                showThemeMenu = false
+                            }
+                    )
+            )
+
+    // Animation states
+    var visibleItems by remember { mutableStateOf(setOf<Int>()) }
+    var isTransitioning by remember { mutableStateOf(false) }
+    var displayedMenu by remember { mutableStateOf(showThemeMenu) }
+
+    // Handle menu transition with crossfade
+    LaunchedEffect(showThemeMenu) {
+        if (showFabMenu && displayedMenu != showThemeMenu) {
+            isTransitioning = true
+            visibleItems = emptySet()
+            delay(200)
+            displayedMenu = showThemeMenu
+
+            val currentItems = if (showThemeMenu) themeMenuItems else mainMenuItems
+            for (i in currentItems.indices.reversed()) {
+                delay(50L)
+                visibleItems = visibleItems + i
+            }
+            isTransitioning = false
+        } else if (!showFabMenu) {
+            displayedMenu = showThemeMenu
+        }
+    }
+
+    // Handle initial expand and collapse
+    LaunchedEffect(showFabMenu) {
+        if (showFabMenu && !isTransitioning) {
+            visibleItems = emptySet()
+            displayedMenu = showThemeMenu
+            val currentItems = if (showThemeMenu) themeMenuItems else mainMenuItems
+            for (i in currentItems.indices.reversed()) {
+                delay(50L)
+                visibleItems = visibleItems + i
+            }
+        } else if (!showFabMenu) {
+            visibleItems = emptySet()
+            showThemeMenu = false
+        }
+    }
+
+    val displayedItems = if (displayedMenu) themeMenuItems else mainMenuItems
+
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = navBarPadding + 16.dp)
+                modifier =
+                        Modifier.fillMaxSize()
+                                .background(MaterialTheme.colorScheme.background)
+                                .padding(top = statusBarPadding)
         ) {
-            // SECTION 1: TEMA
-            SettingsGroup(title = "Tema") {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    ThemeCard(
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Rounded.Smartphone,
-                        label = "Sistem",
-                        selected = currentTheme == "system",
-                        onClick = { onThemeChanged("system") }
-                    )
-                    ThemeCard(
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Rounded.WbSunny,
-                        label = "Terang",
-                        selected = currentTheme == "light",
-                        onClick = { onThemeChanged("light") }
-                    )
-                    ThemeCard(
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Rounded.DarkMode,
-                        label = "Gelap",
-                        selected = currentTheme == "dark",
-                        onClick = { onThemeChanged("dark") }
+            // Header
+            Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
-                
-                SwitchItem(
-                    title = "Paksa halaman mode gelap",
-                    subtitle = "Mencoba memaksa situs web menggunakan tema gelap",
-                    checked = forceDarkWeb,
-                    onCheckedChange = { 
-                        forceDarkWeb = it
-                        sharedPrefs.edit().putBoolean("force_dark_web", it).apply()
-                    }
+                Text(
+                        text = stringResource(R.string.settings_appearance),
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.padding(start = 8.dp)
                 )
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            // Empty content area - menu is in fab style
+            Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(bottom = navBarPadding))
+        }
 
-            // SECTION 2: LAYOUT DAN GESTUR
-            SettingsGroup(title = "Layout dan Gestur") {
-                MenuItem(
-                    icon = Icons.Rounded.ViewHeadline,
-                    title = "Posisi Bar Alamat",
-                    subtitle = when(addressBarPos) {
-                        "top" -> "Atas"
-                        "bottom" -> "Bawah"
-                        else -> "Otomatis"
-                    },
-                    onClick = { showAddressBarSheet = true }
-                )
-
-                SwitchItem(
-                    icon = Icons.Rounded.Height,
-                    title = "Cegah address bar dalam mode mini",
-                    subtitle = "Paksa mode normal",
-                    checked = preventMiniNavbar,
-                    onCheckedChange = { 
-                        preventMiniNavbar = it
-                        sharedPrefs.edit().putBoolean("prevent_mini_navbar", it).apply()
-                    }
-                )
-
-                MenuItem(
-                    icon = Icons.Rounded.Edit,
-                    title = "Edit bar alamat",
-                    subtitle = "Kostumisasi fungsi dalam bar alamat",
-                    onClick = { /* Navigate to Edit Page later */ }
+        // FAB button to open menu
+        Box(
+                modifier =
+                        Modifier.fillMaxSize()
+                                .navigationBarsPadding()
+                                .padding(end = 24.dp, bottom = 24.dp),
+                contentAlignment = Alignment.BottomEnd
+        ) {
+            // FAB Menu Overlay (clickable scrim)
+            if (showFabMenu) {
+                Box(
+                        modifier =
+                                Modifier.fillMaxSize().clickable(
+                                                interactionSource =
+                                                        remember { MutableInteractionSource() },
+                                                indication = null
+                                        ) {
+                                    showFabMenu = false
+                                    showThemeMenu = false
+                                }
                 )
             }
-        }
-    }
 
-    if (showAddressBarSheet) {
-        AddressBarPositionBottomSheet(
-            selectedPos = addressBarPos,
-            onPosSelected = { pos ->
-                addressBarPos = pos
-                sharedPrefs.edit().putString("address_bar_position", pos).apply()
-                showAddressBarSheet = false
-            },
-            onDismiss = { showAddressBarSheet = false }
-        )
-    }
-}
+            // Menu Pills
+            Column(
+                    modifier = Modifier.padding(bottom = 72.dp),
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (displayedMenu) {
+                    // Theme menu
+                    themeMenuItems.forEachIndexed { index, item ->
+                        AnimatedVisibility(
+                                visible = showFabMenu && index in visibleItems,
+                                enter =
+                                        fadeIn(animationSpec = tween(200)) +
+                                                slideInVertically(
+                                                        initialOffsetY = { it / 2 },
+                                                        animationSpec =
+                                                                spring(
+                                                                        dampingRatio =
+                                                                                Spring.DampingRatioMediumBouncy,
+                                                                        stiffness =
+                                                                                Spring.StiffnessMedium
+                                                                )
+                                                ),
+                                exit =
+                                        fadeOut(animationSpec = tween(150)) +
+                                                slideOutVertically(
+                                                        targetOffsetY = { it / 2 },
+                                                        animationSpec = tween(150)
+                                                )
+                        ) { MenuPill(icon = item.icon, label = item.label, onClick = item.onClick) }
+                    }
+                } else {
+                    // Main menu
+                    mainMenuItems.forEachIndexed { index, item ->
+                        AnimatedVisibility(
+                                visible = showFabMenu && index in visibleItems,
+                                enter =
+                                        fadeIn(animationSpec = tween(200)) +
+                                                slideInVertically(
+                                                        initialOffsetY = { it / 2 },
+                                                        animationSpec =
+                                                                spring(
+                                                                        dampingRatio =
+                                                                                Spring.DampingRatioMediumBouncy,
+                                                                        stiffness =
+                                                                                Spring.StiffnessMedium
+                                                                )
+                                                ),
+                                exit =
+                                        fadeOut(animationSpec = tween(150)) +
+                                                slideOutVertically(
+                                                        targetOffsetY = { it / 2 },
+                                                        animationSpec = tween(150)
+                                                )
+                        ) { MenuPill(icon = item.icon, label = item.label, onClick = item.onClick) }
+                    }
+                }
+            }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AddressBarPositionBottomSheet(
-    selectedPos: String,
-    onPosSelected: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(),
-        containerColor = MaterialTheme.colorScheme.surface,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 32.dp)
-        ) {
-            Text(
-                text = "Posisi Bar Alamat",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-            )
-            
-            PositionOptionItem(
-                icon = Icons.Rounded.VerticalAlignTop,
-                label = "Atas",
-                selected = selectedPos == "top",
-                onClick = { onPosSelected("top") }
-            )
-            PositionOptionItem(
-                icon = Icons.Rounded.VerticalAlignBottom,
-                label = "Bawah",
-                selected = selectedPos == "bottom",
-                onClick = { onPosSelected("bottom") }
-            )
-            PositionOptionItem(
-                icon = Icons.Rounded.AutoMode,
-                label = "Otomatis (Default)",
-                selected = selectedPos == "auto",
-                onClick = { onPosSelected("auto") }
-            )
-        }
-    }
-}
-
-@Composable
-private fun PositionOptionItem(
-    icon: ImageVector,
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (selected) Secondary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(
-                text = label,
-                fontSize = 16.sp,
-                color = if (selected) Secondary else MaterialTheme.colorScheme.onSurface
-            )
-        }
-        RadioButton(
-            selected = selected,
-            onClick = null,
-            colors = RadioButtonDefaults.colors(selectedColor = Secondary)
-        )
-    }
-}
-
-@Composable
-private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = title,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-        content()
-    }
-}
-
-@Composable
-private fun ThemeCard(
-    modifier: Modifier = Modifier,
-    icon: ImageVector,
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier.height(80.dp),
-        shape = RoundedCornerShape(12.dp),
-        color = if (selected) Secondary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = if (selected) BorderStroke(2.dp, Secondary) else null
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (selected) Secondary else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = label,
-                fontSize = 12.sp,
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                color = if (selected) Secondary else MaterialTheme.colorScheme.onSurface
-            )
-        }
-    }
-}
-
-@Composable
-private fun SwitchItem(
-    icon: ImageVector? = null,
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-            if (icon != null) {
+            // FAB Button
+            FloatingActionButton(
+                    onClick = { showFabMenu = !showFabMenu },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
                 Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-            }
-            Column {
-                Text(
-                    text = title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = subtitle,
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                        imageVector =
+                                if (showFabMenu) Icons.AutoMirrored.Rounded.ArrowBack
+                                else Icons.Rounded.Palette,
+                        contentDescription = if (showFabMenu) "Close" else "Menu"
                 )
             }
         }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = Secondary
-            )
-        )
     }
 }
 
 @Composable
-private fun MenuItem(
-    icon: ImageVector,
-    title: String,
-    subtitle: String? = null,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Column {
-            Text(
-                text = title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
+private fun MenuPill(icon: ImageVector, label: String, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by
+            animateFloatAsState(
+                    targetValue = if (isPressed) 0.94f else 1f,
+                    animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+                    label = "pillScale"
             )
-            if (subtitle != null) {
-                Text(
-                    text = subtitle,
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+
+    Surface(
+            modifier =
+                    Modifier.scale(scale)
+                            .shadow(3.dp, RoundedCornerShape(25.dp))
+                            .clickable(
+                                    interactionSource = interactionSource,
+                                    indication = null,
+                                    onClick = onClick
+                            ),
+            shape = RoundedCornerShape(25.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+    ) {
+        Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(text = label, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }

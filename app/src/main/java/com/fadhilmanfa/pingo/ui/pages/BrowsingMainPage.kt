@@ -1,19 +1,23 @@
 package com.fadhilmanfa.pingo.ui.pages
 
 import android.app.DownloadManager
+import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
 import android.database.Cursor
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.Parcel
+import android.provider.Settings
 import android.webkit.MimeTypeMap
 import android.webkit.URLUtil
 import android.webkit.WebView
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -65,6 +69,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.content.FileProvider
+import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -78,6 +83,7 @@ import com.fadhilmanfa.pingo.data.remote.GroqRepository
 import com.fadhilmanfa.pingo.ui.components.AiNavBar
 import com.fadhilmanfa.pingo.ui.components.AiResponseBottomSheet
 import com.fadhilmanfa.pingo.ui.components.BookmarkBottomSheet
+import com.fadhilmanfa.pingo.ui.components.FabMenuBackdrop
 import com.fadhilmanfa.pingo.ui.components.FabMenuOverlay
 import com.fadhilmanfa.pingo.ui.components.NavBar
 import com.fadhilmanfa.pingo.ui.components.PrewarmComposables
@@ -107,6 +113,33 @@ private fun captureWebViewThumbnail(webView: WebView, maxWidth: Int = 300): Bitm
         bitmap
     } catch (e: Exception) {
         null
+    }
+}
+
+private fun openDefaultBrowserSettings(context: Context) {
+    val alreadyDefaultMsg =
+            context.getString(com.fadhilmanfa.pingo.R.string.msg_default_browser_already)
+    try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roleManager = context.getSystemService(Context.ROLE_SERVICE) as RoleManager
+            if (roleManager.isRoleAvailable(RoleManager.ROLE_BROWSER)) {
+                if (!roleManager.isRoleHeld(RoleManager.ROLE_BROWSER)) {
+                    val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_BROWSER)
+                    context.startActivity(intent)
+                } else {
+                    Toast.makeText(context, alreadyDefaultMsg, Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                val intent = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
+                context.startActivity(intent)
+            }
+        } else {
+            val intent = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
+            context.startActivity(intent)
+        }
+    } catch (e: Exception) {
+        val intent = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
+        context.startActivity(intent)
     }
 }
 
@@ -141,6 +174,7 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
     var isUrlEditingMode by remember { mutableStateOf(false) }
     var isAiModeActive by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
+    var fabMenuTitle by remember { mutableStateOf<String?>(null) }
     var showTabSheet by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var showGeneralSettings by remember { mutableStateOf(false) }
@@ -894,6 +928,13 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                             alpha = uiAlpha * editModeAlpha
                         }
         ) {
+            // Backdrop for FabMenu - rendered first so it's below NavBar
+            FabMenuBackdrop(
+                    expanded = showMenu && !isNavBarCollapsed && !isUrlEditingMode,
+                    menuTitle = fabMenuTitle,
+                    onDismiss = { showMenu = false }
+            )
+
             NavBar(
                     modifier =
                             Modifier.align(Alignment.TopCenter).graphicsLayer {
@@ -984,9 +1025,58 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                     },
                     onPingoAI = { isAiModeActive = true },
                     onBookmark = { showBookmarkSheet = true },
-                    onSettings = { showSettings = true },
                     onHistory = { showHistory = true },
-                    onDownloads = { showDownloads = true }
+                    onDownloads = { showDownloads = true },
+                    // Settings submenu callbacks
+                    onNavigateToSearch = { showSearchSettings = true },
+                    onNavigateToNotifications = { showNotificationSettings = true },
+                    onNavigateToDownloadSettings = { showDownloadSettings = true },
+                    onNavigateToHelp = { showHelpSettings = true },
+                    onNavigateToAbout = { showAboutSettings = true },
+                    // General submenu callbacks
+                    onSetDefaultBrowser = { openDefaultBrowserSettings(context) },
+                    onLanguageSelected = { localeCode ->
+                        val appLocale: LocaleListCompat =
+                                LocaleListCompat.forLanguageTags(localeCode)
+                        AppCompatDelegate.setApplicationLocales(appLocale)
+                    },
+                    // Appearance submenu callbacks
+                    onThemeSelected = { theme -> onThemeChanged(theme) },
+                    // Start Page submenu callbacks
+                    onWallpaperClicked = { /* TODO: Implement wallpaper picker */},
+                    onSpeedDialsToggle = {
+                        val currentValue = sharedPrefs.getBoolean("show_speed_dials", true)
+                        sharedPrefs.edit().putBoolean("show_speed_dials", !currentValue).apply()
+                    },
+                    onRecommendationsToggle = {
+                        val currentValue = sharedPrefs.getBoolean("show_recommendations", true)
+                        sharedPrefs.edit().putBoolean("show_recommendations", !currentValue).apply()
+                    },
+                    // Privacy submenu callbacks
+                    onAdBlockerToggle = {
+                        val adBlockManager =
+                                com.fadhilmanfa.pingo.data.adblock.AdBlockManager.getInstance(
+                                        context
+                                )
+                        adBlockManager.isEnabled = !adBlockManager.isEnabled
+                    },
+                    onSafeBrowsingToggle = {
+                        val currentValue = sharedPrefs.getBoolean("safe_browsing", true)
+                        sharedPrefs.edit().putBoolean("safe_browsing", !currentValue).apply()
+                    },
+                    onPreventPopupsToggle = {
+                        val currentValue = sharedPrefs.getBoolean("prevent_popups", true)
+                        sharedPrefs.edit().putBoolean("prevent_popups", !currentValue).apply()
+                    },
+                    onSiteSettingsClicked = { /* TODO: Implement site settings */},
+                    onCookiesClicked = { /* TODO: Implement cookies management */},
+                    onDnsClicked = { /* TODO: Implement DNS settings */},
+                    onClearOnExitToggle = {
+                        val currentValue = sharedPrefs.getBoolean("clear_on_exit", false)
+                        sharedPrefs.edit().putBoolean("clear_on_exit", !currentValue).apply()
+                    },
+                    onClearDataClicked = { /* TODO: Implement clear browsing data */},
+                    onMenuChanged = { menuTitle -> fabMenuTitle = menuTitle }
             )
         }
 

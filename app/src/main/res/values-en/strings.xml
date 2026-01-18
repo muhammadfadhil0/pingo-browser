@@ -1,0 +1,122 @@
+<resources>
+    <string name="app_name">Pingo Browser</string>
+    <string name="settings_title">Settings</string>
+    <string name="settings_general">General</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_start_page">Start Page</string>
+    <string name="settings_privacy">Privacy</string>
+    <string name="settings_search">Search</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_downloads">Downloads</string>
+    <string name="settings_help">Help</string>
+    <string name="settings_about">About Pingo</string>
+    
+    <string name="settings_language">Language</string>
+    <string name="settings_language_subtitle">Choose application language</string>
+    <string name="settings_default_browser">Default Browser</string>
+    <string name="settings_default_browser_subtitle">Set Pingo as your primary browser</string>
+    <string name="settings_select_language">Select Language</string>
+    <string name="language_indonesian">Bahasa Indonesia</string>
+    <string name="language_english">English</string>
+    
+    <string name="settings_appearance_subtitle">Theme, layout, text size</string>
+    <string name="settings_start_page_subtitle">Wallpaper, Speed dials, Recommendations</string>
+    <string name="settings_privacy_subtitle">Site settings, permissions, cookies</string>
+    <string name="settings_search_subtitle">Your search engine</string>
+    <string name="settings_notifications_subtitle">Push notifications, system</string>
+    <string name="settings_downloads_subtitle">Queue, folders, confirmation</string>
+    <string name="settings_help_subtitle">FAQs, report bugs, social</string>
+    <string name="settings_about_subtitle">Updates, version</string>
+    
+    <string name="theme_title">Select Theme</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_system">Follow System</string>
+    
+    <string name="adblock_title">Ad Blocker</string>
+    <string name="status_active">Active</string>
+    <string name="status_inactive">Inactive</string>
+    
+    <string name="msg_default_browser_already">Pingo is already your default browser</string>
+    
+    <!-- AI Bar Strings -->
+    <string name="ai_placeholder">Ask about this page</string>
+    <string name="ai_processing">Processing your answer...</string>
+    <string name="ai_suggest_summarize">Summarize</string>
+    <string name="ai_suggest_summarize_prompt">Summarize this page</string>
+    <string name="ai_suggest_explain">Explain</string>
+    <string name="ai_suggest_explain_prompt">Explain the content of this page</string>
+    <string name="ai_suggest_translate">Translate</string>
+    <string name="ai_suggest_translate_prompt">Translate this page to English</string>
+    
+    <!-- Common Actions -->
+    <string name="action_back">Back</string>
+    
+    <!-- FabMenu Strings -->
+    <string name="fab_stop">Stop</string>
+    <string name="fab_refresh">Refresh</string>
+    <string name="fab_settings">Settings</string>
+    <string name="fab_downloads">Downloads</string>
+    <string name="fab_history">History</string>
+    <string name="fab_bookmark">Bookmark</string>
+    <string name="fab_forward">Forward</string>
+    <string name="fab_pingo_ai">Pingo AI</string>
+    <string name="fab_back">Back</string>
+    
+    <!-- Downloads Page Strings -->
+    <string name="downloads_title">Downloads</string>
+    <string name="downloads_clear_all">Clear All</string>
+    <string name="downloads_empty">No downloads yet</string>
+    <string name="downloads_completed">Completed</string>
+    <string name="downloads_options">Options</string>
+    
+    <!-- History Page Strings -->
+    <string name="history_title">History</string>
+    <string name="history_clear_all">Clear All</string>
+    <string name="history_empty">No history yet</string>
+    <string name="history_options">Options</string>
+    
+    <!-- Bookmark BottomSheet Strings -->
+    <string name="bookmark_active_page">Active Page</string>
+    <string name="bookmark_no_title">Untitled</string>
+    <string name="bookmark_saved_pages">Your saved pages</string>
+    <string name="bookmark_empty">No bookmarks yet</string>
+    <string name="bookmark_delete">Delete</string>
+    
+    <!-- Start Page Submenu Strings -->
+    <string name="start_page_wallpaper">Wallpaper</string>
+    <string name="start_page_speed_dials">Speed Dials</string>
+    <string name="start_page_recommendations">Recommended Sites</string>
+    
+    <!-- Privacy Submenu Strings -->
+    <string name="privacy_ad_blocker">Ad Blocker</string>
+    <string name="privacy_safe_browsing">Safe Browsing</string>
+    <string name="privacy_prevent_popups">Prevent Pop-ups</string>
+    <string name="privacy_site_settings">Site Settings</string>
+    <string name="privacy_cookies">Cookies</string>
+    <string name="privacy_dns">DNS</string>
+    <string name="privacy_clear_on_exit">Clear Data on Exit</string>
+    <string name="privacy_clear_data">Clear Browsing Data</string>
+    
+    <!-- Search Submenu Strings -->
+    <string name="search_engine">Search Engine</string>
+    <string name="search_pingo_ai">Pingo AI</string>
+    
+    <!-- Notifications Submenu Strings -->
+    <string name="notifications_push">Push Notifications</string>
+    
+    <!-- Download Settings Submenu Strings -->
+    <string name="downloads_ask_before">Ask Before Download</string>
+    <string name="downloads_queue">Download Queue</string>
+    <string name="downloads_folder">Download Folder</string>
+    
+    <!-- Help Submenu Strings -->
+    <string name="help_faq">FAQ</string>
+    <string name="help_report_bug">Report Bug</string>
+    <string name="help_feedback">Send Feedback</string>
+    
+    <!-- About Submenu Strings -->
+    <string name="about_version">Version</string>
+    <string name="about_tos">Terms of Service</string>
+    <string name="about_third_party">Third-party Libraries</string>
+</resources>

@@ -1,434 +1,275 @@
 package com.fadhilmanfa.pingo.ui.pages
 
-import android.content.Context
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.AdsClick
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.DarkMode
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.HelpOutline
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Language
-import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.PrivacyTip
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.automirrored.rounded.HelpOutline
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fadhilmanfa.pingo.data.adblock.AdBlockManager
+import com.fadhilmanfa.pingo.R
 import com.fadhilmanfa.pingo.ui.theme.Secondary
+import kotlinx.coroutines.delay
+
+private data class SettingsMenuItem(
+        val icon: ImageVector,
+        val label: String,
+        val subtitle: String,
+        val onClick: () -> Unit
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsPage(
-    onBack: () -> Unit,
-    onNavigateToAdBlocker: () -> Unit,
-    onNavigateToGeneral: () -> Unit,
-    onNavigateToAppearance: () -> Unit,
-    onNavigateToStartPage: () -> Unit,
-    onNavigateToPrivacy: () -> Unit,
-    onNavigateToSearch: () -> Unit,
-    onNavigateToNotifications: () -> Unit,
-    onNavigateToDownloadSettings: () -> Unit,
-    onNavigateToHelp: () -> Unit,
-    onNavigateToAbout: () -> Unit,
-    currentTheme: String,
-    onThemeChanged: (String) -> Unit
+        onBack: () -> Unit,
+        onNavigateToAdBlocker: () -> Unit,
+        onNavigateToGeneral: () -> Unit,
+        onNavigateToAppearance: () -> Unit,
+        onNavigateToStartPage: () -> Unit,
+        onNavigateToPrivacy: () -> Unit,
+        onNavigateToSearch: () -> Unit,
+        onNavigateToNotifications: () -> Unit,
+        onNavigateToDownloadSettings: () -> Unit,
+        onNavigateToHelp: () -> Unit,
+        onNavigateToAbout: () -> Unit,
+        currentTheme: String,
+        onThemeChanged: (String) -> Unit
 ) {
-    val context = LocalContext.current
-    val adBlockManager = remember { AdBlockManager.getInstance(context) }
-    
-    var pingoAiEnabled by remember { mutableStateOf(true) }
-    var adBlockerEnabled by remember { mutableStateOf(adBlockManager.isEnabled) }
-    
-    // Theme states
-    var showThemeSheet by remember { mutableStateOf(false) }
-
     val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
+    // Menu items data
+    val menuItems =
+            listOf(
+                    SettingsMenuItem(
+                            icon = Icons.Rounded.Language,
+                            label = stringResource(R.string.settings_general),
+                            subtitle = stringResource(R.string.settings_general_subtitle),
+                            onClick = onNavigateToGeneral
+                    ),
+                    SettingsMenuItem(
+                            icon = Icons.Rounded.Palette,
+                            label = stringResource(R.string.settings_appearance),
+                            subtitle = stringResource(R.string.settings_appearance_subtitle),
+                            onClick = onNavigateToAppearance
+                    ),
+                    SettingsMenuItem(
+                            icon = Icons.Rounded.Home,
+                            label = stringResource(R.string.settings_start_page),
+                            subtitle = stringResource(R.string.settings_start_page_subtitle),
+                            onClick = onNavigateToStartPage
+                    ),
+                    SettingsMenuItem(
+                            icon = Icons.Rounded.PrivacyTip,
+                            label = stringResource(R.string.settings_privacy),
+                            subtitle = stringResource(R.string.settings_privacy_subtitle),
+                            onClick = onNavigateToPrivacy
+                    ),
+                    SettingsMenuItem(
+                            icon = Icons.Rounded.Search,
+                            label = stringResource(R.string.settings_search),
+                            subtitle = stringResource(R.string.settings_search_subtitle),
+                            onClick = onNavigateToSearch
+                    ),
+                    SettingsMenuItem(
+                            icon = Icons.Rounded.Notifications,
+                            label = stringResource(R.string.settings_notifications),
+                            subtitle = stringResource(R.string.settings_notifications_subtitle),
+                            onClick = onNavigateToNotifications
+                    ),
+                    SettingsMenuItem(
+                            icon = Icons.Rounded.Download,
+                            label = stringResource(R.string.settings_downloads),
+                            subtitle = stringResource(R.string.settings_downloads_subtitle),
+                            onClick = onNavigateToDownloadSettings
+                    ),
+                    SettingsMenuItem(
+                            icon = Icons.AutoMirrored.Rounded.HelpOutline,
+                            label = stringResource(R.string.settings_help),
+                            subtitle = stringResource(R.string.settings_help_subtitle),
+                            onClick = onNavigateToHelp
+                    ),
+                    SettingsMenuItem(
+                            icon = Icons.Rounded.Info,
+                            label = stringResource(R.string.settings_about),
+                            subtitle = stringResource(R.string.settings_about_subtitle),
+                            onClick = onNavigateToAbout
+                    )
+            )
+
+    // Animation state for staggered appearance
+    var visibleItems by remember { mutableStateOf(setOf<Int>()) }
+
+    LaunchedEffect(Unit) {
+        for (i in menuItems.indices) {
+            delay(50L)
+            visibleItems = visibleItems + i
+        }
+    }
+
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(top = statusBarPadding)
+            modifier =
+                    Modifier.fillMaxSize()
+                            .background(MaterialTheme.colorScheme.background)
+                            .padding(top = statusBarPadding)
     ) {
         // Header
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onBackground
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onBackground
                 )
             }
             Text(
-                text = "Pengaturan",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(start = 8.dp)
+                    text = stringResource(R.string.settings_title),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.padding(start = 8.dp)
             )
         }
 
+        // Menu Items with FabMenu-style pills
         Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = navBarPadding + 16.dp)
+                modifier =
+                        Modifier.weight(1f)
+                                .verticalScroll(rememberScrollState())
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .padding(bottom = navBarPadding + 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Quick Toggles Section
-            SettingsSection {
-                SwitchItem(
-                    icon = Icons.Rounded.AutoAwesome,
-                    title = "Pingo AI",
-                    subtitle = if (pingoAiEnabled) "Aktif" else "Tidak Aktif",
-                    checked = pingoAiEnabled,
-                    onCheckedChange = { pingoAiEnabled = it }
-                )
-                SwitchItem(
-                    icon = Icons.Rounded.AdsClick,
-                    title = "Pemblokir Iklan",
-                    subtitle = if (adBlockerEnabled) "Aktif" else "Tidak Aktif",
-                    checked = adBlockerEnabled,
-                    onCheckedChange = { 
-                        adBlockerEnabled = it
-                        adBlockManager.isEnabled = it
-                    },
-                    onClick = onNavigateToAdBlocker
-                )
-                SwitchItem(
-                    icon = Icons.Rounded.DarkMode,
-                    title = "Tema Gelap",
-                    subtitle = when(currentTheme) {
-                        "light" -> "Terang"
-                        "dark" -> "Gelap"
-                        else -> "Ikuti Perangkat"
-                    },
-                    checked = currentTheme == "dark",
-                    onCheckedChange = { isDark ->
-                        onThemeChanged(if (isDark) "dark" else "light")
-                    },
-                    onClick = { showThemeSheet = true }
-                )
+            menuItems.forEachIndexed { index, item ->
+                AnimatedVisibility(
+                        visible = index in visibleItems,
+                        enter =
+                                fadeIn(animationSpec = tween(200)) +
+                                        slideInVertically(
+                                                initialOffsetY = { it / 2 },
+                                                animationSpec =
+                                                        spring(
+                                                                dampingRatio =
+                                                                        Spring.DampingRatioMediumBouncy,
+                                                                stiffness = Spring.StiffnessMedium
+                                                        )
+                                        ),
+                        exit =
+                                fadeOut(animationSpec = tween(150)) +
+                                        slideOutVertically(
+                                                targetOffsetY = { it / 2 },
+                                                animationSpec = tween(150)
+                                        )
+                ) {
+                    SettingsMenuPill(
+                            icon = item.icon,
+                            label = item.label,
+                            subtitle = item.subtitle,
+                            onClick = item.onClick
+                    )
+                }
             }
-
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 8.dp), 
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-            )
-
-            // Menu Items Section
-            MenuItem(
-                icon = Icons.Rounded.Language,
-                title = "1. Umum",
-                subtitle = "Bahasa, Default browser",
-                onClick = onNavigateToGeneral
-            )
-            MenuItem(
-                icon = Icons.Rounded.Palette,
-                title = "2. Tampilan",
-                subtitle = "Tema, layout, ukuran teks",
-                onClick = onNavigateToAppearance
-            )
-            MenuItem(
-                icon = Icons.Rounded.Home,
-                title = "3. Halaman Mulai",
-                subtitle = "Wallpaper, Speed dials, Rekomendasi",
-                onClick = onNavigateToStartPage
-            )
-            MenuItem(
-                icon = Icons.Rounded.PrivacyTip,
-                title = "4. Privasi",
-                subtitle = "Pengaturan situs, perizinan, kuki",
-                onClick = onNavigateToPrivacy
-            )
-            MenuItem(
-                icon = Icons.Rounded.Search,
-                title = "5. Pencarian",
-                subtitle = "Mesin pencarian Anda",
-                onClick = onNavigateToSearch
-            )
-            MenuItem(
-                icon = Icons.Rounded.Notifications,
-                title = "6. Notifikasi",
-                subtitle = "Push notifikasi, sistem",
-                onClick = onNavigateToNotifications
-            )
-            MenuItem(
-                icon = Icons.Rounded.Download,
-                title = "7. Unduhan",
-                subtitle = "Antrean, folder, konfirmasi",
-                onClick = onNavigateToDownloadSettings
-            )
-            MenuItem(
-                icon = Icons.Rounded.HelpOutline,
-                title = "8. Bantuan",
-                subtitle = "FAQs, lapor kesalahan, sosial",
-                onClick = onNavigateToHelp
-            )
-            MenuItem(
-                icon = Icons.Rounded.Info,
-                title = "9. Tentang Pingo",
-                subtitle = "Pembaruan, versi",
-                onClick = onNavigateToAbout
-            )
         }
-    }
-
-    if (showThemeSheet) {
-        ThemeSelectionBottomSheet(
-            selectedTheme = currentTheme,
-            onThemeSelected = { 
-                onThemeChanged(it)
-                showThemeSheet = false
-            },
-            onDismiss = { showThemeSheet = false }
-        )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ThemeSelectionBottomSheet(
-    selectedTheme: String,
-    onThemeSelected: (String) -> Unit,
-    onDismiss: () -> Unit
+private fun SettingsMenuPill(
+        icon: ImageVector,
+        label: String,
+        subtitle: String,
+        onClick: () -> Unit
 ) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(),
-        containerColor = MaterialTheme.colorScheme.surface,
-        dragHandle = {
-            Box(
-                modifier = Modifier
-                    .padding(vertical = 12.dp)
-                    .size(width = 32.dp, height = 4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by
+            animateFloatAsState(
+                    targetValue = if (isPressed) 0.97f else 1f,
+                    animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+                    label = "pillScale"
             )
-        }
+
+    Surface(
+            modifier =
+                    Modifier.fillMaxWidth()
+                            .scale(scale)
+                            .shadow(4.dp, RoundedCornerShape(16.dp))
+                            .clickable(
+                                    interactionSource = interactionSource,
+                                    indication = null,
+                                    onClick = onClick
+                            ),
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 32.dp)
+        Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Pilih Tema",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-            )
-            
-            ThemeOptionItem(
-                label = "Terang",
-                selected = selectedTheme == "light",
-                onClick = { onThemeSelected("light") }
-            )
-            ThemeOptionItem(
-                label = "Gelap",
-                selected = selectedTheme == "dark",
-                onClick = { onThemeSelected("dark") }
-            )
-            ThemeOptionItem(
-                label = "Ikuti Perangkat",
-                selected = selectedTheme == "system",
-                onClick = { onThemeSelected("system") }
-            )
-        }
-    }
-}
-
-@Composable
-private fun ThemeOptionItem(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = label,
-            fontSize = 16.sp,
-            color = if (selected) Secondary else MaterialTheme.colorScheme.onSurface
-        )
-        RadioButton(
-            selected = selected,
-            onClick = null,
-            colors = RadioButtonDefaults.colors(
-                selectedColor = Secondary,
-                unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        )
-    }
-}
-
-@Composable
-private fun SettingsSection(content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        content = content
-    )
-}
-
-@Composable
-private fun SwitchItem(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    onClick: (() -> Unit)? = null
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
             Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Secondary.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
+                    modifier =
+                            Modifier.size(42.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Secondary.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = icon,
+                        imageVector = icon,
+                        contentDescription = label,
+                        tint = Secondary,
+                        modifier = Modifier.size(22.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                        text = label,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                        text = subtitle,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                    imageVector = Icons.Rounded.ChevronRight,
                     contentDescription = null,
-                    tint = Secondary,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(
-                    text = title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = subtitle,
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = Secondary,
-                uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-                uncheckedBorderColor = Color.Transparent
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
             )
-        )
-    }
-}
-
-@Composable
-private fun MenuItem(
-    icon: ImageVector,
-    title: String,
-    subtitle: String? = null,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Column {
-            Text(
-                text = title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            if (subtitle != null) {
-                Text(
-                    text = subtitle,
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 }
