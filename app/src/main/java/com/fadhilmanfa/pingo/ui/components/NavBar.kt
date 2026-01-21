@@ -347,7 +347,7 @@ fun NavBar(
                                         NavButton(
                                                 icon = Icons.AutoMirrored.Rounded.ArrowBackIos,
                                                 onClick = onBackPressed,
-                                                enabled = canGoBack,
+                                                enabled = canGoBack && !showMenu,
                                                 contentDescription = "Back",
                                                 interactionSource = navBarInteractionSource
                                         )
@@ -360,7 +360,7 @@ fun NavBar(
                                                 faviconUrl = faviconUrl,
                                                 isLoading = isLoading,
                                                 onClick = onUrlBarTap,
-                                                enabled = !isCollapsed,
+                                                enabled = !isCollapsed && !showMenu,
                                                 interactionSource = navBarInteractionSource
                                         )
 
@@ -368,7 +368,7 @@ fun NavBar(
                                                 TabCountButton(
                                                         count = tabCount,
                                                         onClick = onTabButtonClick,
-                                                        enabled = !isCollapsed,
+                                                        enabled = !isCollapsed && !showMenu,
                                                         interactionSource = navBarInteractionSource
                                                 )
                                                 Spacer(modifier = Modifier.width(4.dp))

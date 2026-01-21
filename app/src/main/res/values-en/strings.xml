@@ -83,6 +83,19 @@
     <string name="bookmark_empty">No bookmarks yet</string>
     <string name="bookmark_delete">Delete</string>
     
+    <!-- On Startup Settings -->
+    <string name="startup_on_startup">On Startup</string>
+    <string name="startup_on_startup_subtitle">Choose what happens when the app opens</string>
+    <string name="startup_open_new_page">Open new page</string>
+    <string name="startup_continue_where_left">Continue where you left off</string>
+    <string name="startup_open_start_page">Open start page</string>
+    
+    <!-- Start Page -->
+    <string name="start_page_search_hint">Search or type URL</string>
+    <string name="start_page_quick_access">Quick Access</string>
+    <string name="start_page_tagline">Explore your world</string>
+    <string name="status_aktif">ACTIVE</string>
+    
     <!-- Start Page Submenu Strings -->
     <string name="start_page_wallpaper">Wallpaper</string>
     <string name="start_page_speed_dials">Speed Dials</string>

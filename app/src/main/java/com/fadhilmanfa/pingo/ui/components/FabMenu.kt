@@ -33,6 +33,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.ExitToApp
 import androidx.compose.material.icons.automirrored.rounded.HelpOutline
 import androidx.compose.material.icons.automirrored.rounded.Sort
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AdsClick
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.BookmarkBorder
@@ -55,6 +56,7 @@ import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.OpenInBrowser
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.PrivacyTip
 import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material.icons.rounded.QuestionAnswer
@@ -97,6 +99,17 @@ private data class FabMenuItem(
         val onClick: () -> Unit,
         val enabled: Boolean = true
 )
+
+private data class FabMenuItemWithActive(
+        val icon: ImageVector,
+        val label: String,
+        val onClick: () -> Unit,
+        val isActive: Boolean = false,
+        val activeLabel: String = "",
+        val enabled: Boolean = true
+) {
+        fun toFabMenuItem() = FabMenuItem(icon, label, onClick, enabled)
+}
 
 /**
  * Separate backdrop composable for FabMenu. This allows parent to control z-ordering so NavBar can
@@ -175,6 +188,10 @@ fun FabMenuOverlay(
         // Appearance submenu callbacks
         onThemeSelected: (String) -> Unit = {},
         // Start Page submenu callbacks
+        startupBehavior: String = "start_page",
+        onStartupNewPage: () -> Unit = {},
+        onStartupContinue: () -> Unit = {},
+        onStartupStartPage: () -> Unit = {},
         onWallpaperClicked: () -> Unit = {},
         onSpeedDialsToggle: () -> Unit = {},
         onRecommendationsToggle: () -> Unit = {},
@@ -208,7 +225,7 @@ fun FabMenuOverlay(
         var currentMenu by remember {
                 mutableStateOf(0)
         } // 0=main, 1=settings, 2=general, 3=language, 4=appearance, 5=startpage, 6=privacy,
-        // 7=search, 8=notifications, 9=downloads, 10=help, 11=about
+        // 7=search, 8=notifications, 9=downloads, 10=help, 11=about, 12=startup
 
         // Reset menu when fab is closed
         LaunchedEffect(expanded) {
@@ -230,6 +247,8 @@ fun FabMenuOverlay(
         val helpLabel = stringResource(R.string.settings_help)
         val aboutLabel = stringResource(R.string.settings_about)
         val languageLabel = stringResource(R.string.settings_language)
+        // Startup label (needed before getMenuTitle)
+        val startupLabel = stringResource(R.string.startup_on_startup)
 
         // Menu titles for header display (localized)
         fun getMenuTitle(menu: Int): String? {
@@ -246,6 +265,7 @@ fun FabMenuOverlay(
                         9 -> downloadsSettingsLabel
                         10 -> helpLabel
                         11 -> aboutLabel
+                        12 -> startupLabel
                         else -> null
                 }
         }
@@ -276,6 +296,10 @@ fun FabMenuOverlay(
         val darkThemeLabel = stringResource(R.string.theme_dark)
 
         // Start Page menu labels
+        val startupNewPageLabel = stringResource(R.string.startup_open_new_page)
+        val startupContinueLabel = stringResource(R.string.startup_continue_where_left)
+        val startupStartPageLabel = stringResource(R.string.startup_open_start_page)
+        val activeLabel = stringResource(R.string.status_aktif)
         val wallpaperLabel = stringResource(R.string.start_page_wallpaper)
         val speedDialsLabel = stringResource(R.string.start_page_speed_dials)
         val recommendationsLabel = stringResource(R.string.start_page_recommendations)
@@ -535,6 +559,11 @@ fun FabMenuOverlay(
                                 { currentMenu = 1 } // Back to settings menu
                         ),
                         FabMenuItem(
+                                Icons.Rounded.PlayArrow,
+                                startupLabel,
+                                { currentMenu = 12 } // Go to startup submenu
+                        ),
+                        FabMenuItem(
                                 Icons.Rounded.Wallpaper,
                                 wallpaperLabel,
                                 {
@@ -780,6 +809,48 @@ fun FabMenuOverlay(
                         )
                 )
 
+        // Startup submenu items (menu 12)
+        val startupMenuItems =
+                listOf(
+                        FabMenuItemWithActive(
+                                Icons.AutoMirrored.Rounded.ArrowBack,
+                                backLabel,
+                                { currentMenu = 5 }, // Back to start page menu
+                                isActive = false,
+                                activeLabel = activeLabel
+                        ),
+                        FabMenuItemWithActive(
+                                Icons.Rounded.Add,
+                                startupNewPageLabel,
+                                {
+                                        onStartupNewPage()
+                                        onToggle()
+                                },
+                                isActive = startupBehavior == "new_page",
+                                activeLabel = activeLabel
+                        ),
+                        FabMenuItemWithActive(
+                                Icons.Rounded.History,
+                                startupContinueLabel,
+                                {
+                                        onStartupContinue()
+                                        onToggle()
+                                },
+                                isActive = startupBehavior == "continue",
+                                activeLabel = activeLabel
+                        ),
+                        FabMenuItemWithActive(
+                                Icons.Rounded.Home,
+                                startupStartPageLabel,
+                                {
+                                        onStartupStartPage()
+                                        onToggle()
+                                },
+                                isActive = startupBehavior == "start_page",
+                                activeLabel = activeLabel
+                        )
+                )
+
         // Get current menu items based on state
         fun getMenuItems(menu: Int): List<FabMenuItem> {
                 return when (menu) {
@@ -795,6 +866,7 @@ fun FabMenuOverlay(
                         9 -> downloadSettingsMenuItems
                         10 -> helpMenuItems
                         11 -> aboutMenuItems
+                        12 -> startupMenuItems.map { it.toFabMenuItem() }
                         else -> mainMenuItems
                 }
         }
@@ -853,6 +925,12 @@ fun FabMenuOverlay(
         val displayedMenuItems = getMenuItems(displayedMenuState)
         val finalMenuItems = if (isAtTop) displayedMenuItems.reversed() else displayedMenuItems
 
+        // For menu 12, also get the active state items
+        val displayedStartupItems =
+                if (displayedMenuState == 12) {
+                        if (isAtTop) startupMenuItems.reversed() else startupMenuItems
+                } else emptyList()
+
         Box(
                 modifier = modifier.fillMaxSize(),
                 contentAlignment = if (isAtTop) Alignment.TopEnd else Alignment.BottomEnd
@@ -867,40 +945,83 @@ fun FabMenuOverlay(
                         horizontalAlignment = Alignment.End,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                        finalMenuItems.forEachIndexed { index, item ->
-                                AnimatedVisibility(
-                                        visible = expanded && index in visibleItems,
-                                        enter =
-                                                fadeIn(animationSpec = tween(200)) +
-                                                        slideInVertically(
-                                                                initialOffsetY = {
-                                                                        if (isAtTop) -it / 2
-                                                                        else it / 2
-                                                                },
-                                                                animationSpec =
-                                                                        spring(
-                                                                                dampingRatio =
-                                                                                        Spring.DampingRatioMediumBouncy,
-                                                                                stiffness =
-                                                                                        Spring.StiffnessMedium
-                                                                        )
-                                                        ),
-                                        exit =
-                                                fadeOut(animationSpec = tween(150)) +
-                                                        slideOutVertically(
-                                                                targetOffsetY = {
-                                                                        if (isAtTop) -it / 2
-                                                                        else it / 2
-                                                                },
-                                                                animationSpec = tween(150)
-                                                        )
-                                ) {
-                                        MenuPill(
-                                                icon = item.icon,
-                                                label = item.label,
-                                                onClick = item.onClick,
-                                                enabled = item.enabled
-                                        )
+                        if (displayedMenuState == 12) {
+                                // Render startup menu with active state
+                                displayedStartupItems.forEachIndexed { index, item ->
+                                        AnimatedVisibility(
+                                                visible = expanded && index in visibleItems,
+                                                enter =
+                                                        fadeIn(animationSpec = tween(200)) +
+                                                                slideInVertically(
+                                                                        initialOffsetY = {
+                                                                                if (isAtTop) -it / 2
+                                                                                else it / 2
+                                                                        },
+                                                                        animationSpec =
+                                                                                spring(
+                                                                                        dampingRatio =
+                                                                                                Spring.DampingRatioMediumBouncy,
+                                                                                        stiffness =
+                                                                                                Spring.StiffnessMedium
+                                                                                )
+                                                                ),
+                                                exit =
+                                                        fadeOut(animationSpec = tween(150)) +
+                                                                slideOutVertically(
+                                                                        targetOffsetY = {
+                                                                                if (isAtTop) -it / 2
+                                                                                else it / 2
+                                                                        },
+                                                                        animationSpec = tween(150)
+                                                                )
+                                        ) {
+                                                MenuPillWithActive(
+                                                        icon = item.icon,
+                                                        label = item.label,
+                                                        onClick = item.onClick,
+                                                        enabled = item.enabled,
+                                                        isActive = item.isActive,
+                                                        activeLabel = item.activeLabel
+                                                )
+                                        }
+                                }
+                        } else {
+                                // Regular menu rendering
+                                finalMenuItems.forEachIndexed { index, item ->
+                                        AnimatedVisibility(
+                                                visible = expanded && index in visibleItems,
+                                                enter =
+                                                        fadeIn(animationSpec = tween(200)) +
+                                                                slideInVertically(
+                                                                        initialOffsetY = {
+                                                                                if (isAtTop) -it / 2
+                                                                                else it / 2
+                                                                        },
+                                                                        animationSpec =
+                                                                                spring(
+                                                                                        dampingRatio =
+                                                                                                Spring.DampingRatioMediumBouncy,
+                                                                                        stiffness =
+                                                                                                Spring.StiffnessMedium
+                                                                                )
+                                                                ),
+                                                exit =
+                                                        fadeOut(animationSpec = tween(150)) +
+                                                                slideOutVertically(
+                                                                        targetOffsetY = {
+                                                                                if (isAtTop) -it / 2
+                                                                                else it / 2
+                                                                        },
+                                                                        animationSpec = tween(150)
+                                                                )
+                                        ) {
+                                                MenuPill(
+                                                        icon = item.icon,
+                                                        label = item.label,
+                                                        onClick = item.onClick,
+                                                        enabled = item.enabled
+                                                )
+                                        }
                                 }
                         }
                 }
@@ -960,6 +1081,91 @@ private fun MenuPill(
                                         if (enabled) MaterialTheme.colorScheme.onSurface
                                         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                         )
+                }
+        }
+}
+
+@Composable
+private fun MenuPillWithActive(
+        icon: ImageVector,
+        label: String,
+        onClick: () -> Unit,
+        enabled: Boolean = true,
+        isActive: Boolean = false,
+        activeLabel: String = ""
+) {
+        val interactionSource = remember { MutableInteractionSource() }
+        val isPressed by interactionSource.collectIsPressedAsState()
+        val scale by
+                animateFloatAsState(
+                        targetValue = if (isPressed) 0.94f else 1f,
+                        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+                        label = "pillScale"
+                )
+
+        Surface(
+                modifier =
+                        Modifier.scale(scale)
+                                .shadow(3.dp, RoundedCornerShape(25.dp))
+                                .clickable(
+                                        interactionSource = interactionSource,
+                                        indication = null,
+                                        enabled = enabled,
+                                        onClick = onClick
+                                ),
+                shape = RoundedCornerShape(25.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border =
+                        BorderStroke(
+                                width = if (isActive) 2.dp else 1.dp,
+                                color =
+                                        if (isActive) com.fadhilmanfa.pingo.ui.theme.Secondary
+                                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                        )
+        ) {
+                Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                ) {
+                        Icon(
+                                imageVector = icon,
+                                contentDescription = label,
+                                tint =
+                                        if (isActive) com.fadhilmanfa.pingo.ui.theme.Secondary
+                                        else if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
+                                        else
+                                                MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                                        alpha = 0.4f
+                                                ),
+                                modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                                Text(
+                                        text = label,
+                                        fontSize = 14.sp,
+                                        fontWeight =
+                                                if (isActive) FontWeight.SemiBold
+                                                else FontWeight.Normal,
+                                        color =
+                                                if (isActive)
+                                                        com.fadhilmanfa.pingo.ui.theme.Secondary
+                                                else if (enabled)
+                                                        MaterialTheme.colorScheme.onSurface
+                                                else
+                                                        MaterialTheme.colorScheme.onSurface.copy(
+                                                                alpha = 0.4f
+                                                        )
+                                )
+                                if (isActive) {
+                                        Text(
+                                                text = activeLabel,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = com.fadhilmanfa.pingo.ui.theme.Secondary
+                                        )
+                                }
+                        }
                 }
         }
 }

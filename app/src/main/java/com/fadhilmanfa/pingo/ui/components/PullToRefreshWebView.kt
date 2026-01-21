@@ -436,6 +436,19 @@ fun PullToRefreshWebView(
                                                         300
                                                 )
                                     }
+                                    override fun onReceivedError(
+                                            view: WebView?,
+                                            request: WebResourceRequest?,
+                                            error: android.webkit.WebResourceError?
+                                    ) {
+                                        super.onReceivedError(view, request, error)
+                                        // Mencegah loading spinner berputar terus menerus jika
+                                        // terjadi error pada main frame
+                                        if (request?.isForMainFrame == true) {
+                                            onLoadingChange(false)
+                                        }
+                                    }
+
                                     override fun shouldInterceptRequest(
                                             view: WebView?,
                                             request: WebResourceRequest?
