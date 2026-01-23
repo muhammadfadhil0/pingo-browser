@@ -118,6 +118,11 @@
     <string name="strength_medium">Medium</string>
     <string name="strength_strong">Strong</string>
     
+    <!-- Safe Browsing Submenu Strings -->
+    <string name="safe_browsing_on">On</string>
+    <string name="safe_browsing_off">Off</string>
+    <string name="safe_browsing_description">Warn when accessing dangerous websites</string>
+    
     <!-- Search Submenu Strings -->
     <string name="search_engine">Search Engine</string>
     <string name="search_pingo_ai">Pingo AI</string>

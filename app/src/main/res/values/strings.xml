@@ -119,6 +119,11 @@
     <string name="strength_medium">Sedang</string>
     <string name="strength_strong">Kuat</string>
     
+    <!-- Safe Browsing Submenu Strings -->
+    <string name="safe_browsing_on">Nyala</string>
+    <string name="safe_browsing_off">Mati</string>
+    <string name="safe_browsing_description">Berikan peringatan saat mengakses website berbahaya</string>
+    
     <!-- Search Submenu Strings -->
     <string name="search_engine">Mesin Pencari</string>
     <string name="search_pingo_ai">Pingo AI</string>

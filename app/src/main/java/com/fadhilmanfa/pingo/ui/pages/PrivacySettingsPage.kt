@@ -23,7 +23,7 @@ import androidx.compose.material.icons.rounded.AdsClick
 import androidx.compose.material.icons.rounded.Cookie
 import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.Dns
-import androidx.compose.material.icons.rounded.ExitToApp
+import androidx.compose.material.icons.automirrored.rounded.ExitToApp
 import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Settings
@@ -48,7 +48,6 @@ private data class PrivacyMenuItem(
     val onClick: () -> Unit
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PrivacySettingsPage(
     onBack: () -> Unit
@@ -118,7 +117,7 @@ fun PrivacySettingsPage(
             onClick = { /* Implement logic if needed */ }
         ),
         PrivacyMenuItem(
-            icon = Icons.Rounded.ExitToApp,
+            icon = Icons.AutoMirrored.Rounded.ExitToApp,
             label = "Hapus data saat keluar",
             subtitle = "Otomatis hapus data saat aplikasi ditutup",
             onClick = { /* Implement logic if needed */ }

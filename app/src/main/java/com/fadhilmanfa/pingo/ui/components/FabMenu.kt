@@ -116,7 +116,12 @@ private data class FabMenuItemWithActive(
  * appear above the backdrop.
  */
 @Composable
-fun FabMenuBackdrop(expanded: Boolean, menuTitle: String? = null, onDismiss: () -> Unit) {
+fun FabMenuBackdrop(
+        expanded: Boolean,
+        menuTitle: String? = null,
+        menuDescription: String? = null,
+        onDismiss: () -> Unit
+) {
         val backdropAlpha by
                 animateFloatAsState(
                         targetValue = if (expanded) 0.4f else 0f,
@@ -149,12 +154,23 @@ fun FabMenuBackdrop(expanded: Boolean, menuTitle: String? = null, onDismiss: () 
                                                 .graphicsLayer { alpha = backdropAlpha / 0.4f }
                         ) { title ->
                                 if (title != null) {
-                                        Text(
-                                                text = title,
-                                                color = Color.White,
-                                                fontSize = 28.sp,
-                                                fontWeight = FontWeight.Black
-                                        )
+                                        Column {
+                                                Text(
+                                                        text = title,
+                                                        color = Color.White,
+                                                        fontSize = 28.sp,
+                                                        fontWeight = FontWeight.Black
+                                                )
+                                                if (menuDescription != null) {
+                                                        Text(
+                                                                text = menuDescription,
+                                                                color = Color.White.copy(alpha = 0.7f),
+                                                                fontSize = 14.sp,
+                                                                fontWeight = FontWeight.Normal,
+                                                                modifier = Modifier.padding(top = 4.dp)
+                                                        )
+                                                }
+                                        }
                                 }
                         }
                 }
@@ -198,7 +214,8 @@ fun FabMenuOverlay(
         adBlockerStrength: String = "medium",
         onAdBlockerStatusChanged: (Boolean) -> Unit = {},
         onAdBlockerStrengthChanged: (String) -> Unit = {},
-        onSafeBrowsingToggle: () -> Unit = {},
+        onSafeBrowsingChanged: (Boolean) -> Unit = {},
+        safeBrowsingActive: Boolean = true,
         onPreventPopupsToggle: () -> Unit = {},
         onSiteSettingsClicked: () -> Unit = {},
         onCookiesClicked: () -> Unit = {},
@@ -220,20 +237,21 @@ fun FabMenuOverlay(
         onTosClicked: () -> Unit = {},
         onThirdPartyClicked: () -> Unit = {},
         // Menu change callback for header title
-        onMenuChanged: (String?) -> Unit = {}
+        // Menu change callback for header title and description
+        onMenuChanged: (String?, String?) -> Unit = { _, _ -> }
 ) {
         // State for menu navigation - using int for state management
         var currentMenu by remember {
                 mutableStateOf(0)
         } // 0=main, 1=settings, 2=general, 3=language, 4=appearance, 5=startpage, 6=privacy,
         // 7=search, 8=notifications, 9=downloads, 10=help, 11=about, 12=startup, 13=adblocker,
-        // 14=adblocker_status, 15=adblocker_strength
+        // 14=adblocker_status, 15=adblocker_strength, 16=safe_browsing
 
         // Reset menu when fab is closed
         LaunchedEffect(expanded) {
                 if (!expanded) {
                         currentMenu = 0
-                        onMenuChanged(null)
+                        onMenuChanged(null, null)
                 }
         }
 
@@ -272,31 +290,40 @@ fun FabMenuOverlay(
         val activeStatusLabel = stringResource(R.string.status_active)
         val inactiveStatusLabel = stringResource(R.string.status_inactive)
 
+        // Safe Browsing submenu labels
+        val safeBrowsingOnLabel = stringResource(R.string.safe_browsing_on)
+        val safeBrowsingOffLabel = stringResource(R.string.safe_browsing_off)
+        val safeBrowsingDescLabel = stringResource(R.string.safe_browsing_description)
+
         // Menu titles for header display (localized)
-        fun getMenuTitle(menu: Int): String? {
+        fun getMenuTitleAndDescription(menu: Int): Pair<String?, String?> {
                 return when (menu) {
-                        0 -> null // Main menu - no header
-                        1 -> settingsLabel
-                        2 -> generalLabel
-                        3 -> languageLabel
-                        4 -> appearanceLabel
-                        5 -> startPageLabel
-                        6 -> privacyLabel
-                        7 -> searchLabel
-                        8 -> notificationsLabel
-                        9 -> downloadsSettingsLabel
-                        10 -> helpLabel
-                        11 -> aboutLabel
-                        12 -> startupLabel
-                        13 -> adBlockerLabel
-                        14 -> adBlockerStatusLabel
-                        15 -> adBlockerStrengthLabel
-                        else -> null
+                        0 -> null to null // Main menu - no header
+                        1 -> settingsLabel to null
+                        2 -> generalLabel to null
+                        3 -> languageLabel to null
+                        4 -> appearanceLabel to null
+                        5 -> startPageLabel to null
+                        6 -> privacyLabel to null
+                        7 -> searchLabel to null
+                        8 -> notificationsLabel to null
+                        9 -> downloadsSettingsLabel to null
+                        10 -> helpLabel to null
+                        11 -> aboutLabel to null
+                        12 -> startupLabel to null
+                        13 -> adBlockerLabel to null
+                        14 -> adBlockerStatusLabel to null
+                        15 -> adBlockerStrengthLabel to null
+                        16 -> safeBrowsingLabel to safeBrowsingDescLabel
+                        else -> null to null
                 }
         }
 
         // Notify parent when menu changes
-        LaunchedEffect(currentMenu) { onMenuChanged(getMenuTitle(currentMenu)) }
+        LaunchedEffect(currentMenu) {
+                val (title, description) = getMenuTitleAndDescription(currentMenu)
+                onMenuChanged(title, description)
+        }
 
         // Additional localized strings
         val stopLabel = stringResource(R.string.fab_stop)
@@ -598,8 +625,7 @@ fun FabMenuOverlay(
                                 Icons.Rounded.Security,
                                 safeBrowsingLabel,
                                 {
-                                        onSafeBrowsingToggle()
-                                        onToggle()
+                                        currentMenu = 16 // Go to Safe Browsing submenu
                                 }
                         ),
                         FabMenuItem(
@@ -927,6 +953,37 @@ fun FabMenuOverlay(
                         )
                 )
 
+        // Safe Browsing submenu items (menu 16)
+        val safeBrowsingMenuItems =
+                listOf(
+                        FabMenuItemWithActive(
+                                Icons.AutoMirrored.Rounded.ArrowBack,
+                                backLabel,
+                                { currentMenu = 6 }, // Back to privacy menu
+                                isActive = false
+                        ),
+                        FabMenuItemWithActive(
+                                Icons.Rounded.CheckCircle,
+                                safeBrowsingOnLabel,
+                                {
+                                        onSafeBrowsingChanged(true)
+                                        onToggle()
+                                },
+                                isActive = safeBrowsingActive,
+                                activeLabel = activeLabel
+                        ),
+                        FabMenuItemWithActive(
+                                Icons.Rounded.Cancel,
+                                safeBrowsingOffLabel,
+                                {
+                                        onSafeBrowsingChanged(false)
+                                        onToggle()
+                                },
+                                isActive = !safeBrowsingActive,
+                                activeLabel = activeLabel
+                        )
+                )
+
         // Get current menu items based on state
         fun getMenuItems(menu: Int): List<FabMenuItem> {
                 return when (menu) {
@@ -946,6 +1003,7 @@ fun FabMenuOverlay(
                         13 -> adBlockerMenuItems.map { it.toFabMenuItem() }
                         14 -> adBlockerStatusMenuItems.map { it.toFabMenuItem() }
                         15 -> adBlockerStrengthMenuItems.map { it.toFabMenuItem() }
+                        16 -> safeBrowsingMenuItems.map { it.toFabMenuItem() }
                         else -> mainMenuItems
                 }
         }

@@ -204,6 +204,7 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
     var isAiModeActive by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
     var fabMenuTitle by remember { mutableStateOf<String?>(null) }
+    var fabMenuDescription by remember { mutableStateOf<String?>(null) }
     var showTabSheet by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var showGeneralSettings by remember { mutableStateOf(false) }
@@ -229,6 +230,9 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
     }
     var adBlockerActive by remember { mutableStateOf(adBlockManager.isEnabled) }
     var adBlockerStrength by remember { mutableStateOf(adBlockManager.strength.key) }
+    var safeBrowsingActive by remember {
+        mutableStateOf(sharedPrefs.getBoolean("safe_browsing", true))
+    }
 
     val tabs = remember {
         val savedTabs = sharedPrefs.getStringSet("saved_tabs_data", null)
@@ -1017,6 +1021,7 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
             FabMenuBackdrop(
                     expanded = showMenu && !isNavBarCollapsed && !isUrlEditingMode,
                     menuTitle = fabMenuTitle,
+                    menuDescription = fabMenuDescription,
                     onDismiss = { showMenu = false }
             )
 
@@ -1190,10 +1195,11 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                         adBlockManager.isEnabled = newState
                         adBlockerActive = newState
                     },
-                    onSafeBrowsingToggle = {
-                        val currentValue = sharedPrefs.getBoolean("safe_browsing", true)
-                        sharedPrefs.edit().putBoolean("safe_browsing", !currentValue).apply()
+                    onSafeBrowsingChanged = { status ->
+                        safeBrowsingActive = status
+                        sharedPrefs.edit().putBoolean("safe_browsing", status).apply()
                     },
+                    safeBrowsingActive = safeBrowsingActive,
                     onPreventPopupsToggle = {
                         val currentValue = sharedPrefs.getBoolean("prevent_popups", true)
                         sharedPrefs.edit().putBoolean("prevent_popups", !currentValue).apply()
@@ -1206,7 +1212,10 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                         sharedPrefs.edit().putBoolean("clear_on_exit", !currentValue).apply()
                     },
                     onClearDataClicked = { /* TODO: Implement clear browsing data */},
-                    onMenuChanged = { menuTitle -> fabMenuTitle = menuTitle }
+                    onMenuChanged = { title, description ->
+                        fabMenuTitle = title
+                        fabMenuDescription = description
+                    }
             )
         }
 
