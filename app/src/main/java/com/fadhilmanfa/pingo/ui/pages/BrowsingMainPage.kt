@@ -145,7 +145,6 @@ private fun openDefaultBrowserSettings(context: Context) {
 
 // Delimiter yang lebih aman untuk menghindari konflik dengan konten URL/Title
 private const val DATA_DELIMITER = "|||"
-const val START_PAGE_URL = "pingo://start"
 
 private fun processUrl(input: String): String {
     val trimmed = input.trim()
@@ -196,7 +195,7 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
     val aiUiState by aiViewModel.uiState.collectAsStateWithLifecycle()
 
     var startupBehavior by remember {
-        mutableStateOf(sharedPrefs.getString("startup_behavior", "start_page") ?: "start_page")
+        mutableStateOf(sharedPrefs.getString("startup_behavior", "new_page") ?: "new_page")
     }
 
     var isNavBarCollapsed by remember { mutableStateOf(false) }
@@ -250,19 +249,6 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
 
         // Handle startup behavior based on preference
         when (startupBehavior) {
-            "start_page" -> {
-                // If start page is set as startup, check if we already have one open.
-                // If not, or if we want it to always open fresh, add it as a new active tab.
-                tabList.forEachIndexed { index, tab -> tabList[index] = tab.copy(isActive = false) }
-                tabList.add(
-                        TabItem(
-                                id = UUID.randomUUID().toString(),
-                                title = "Pingo",
-                                url = START_PAGE_URL,
-                                isActive = true
-                        )
-                )
-            }
             "new_page" -> {
                 tabList.forEachIndexed { index, tab -> tabList[index] = tab.copy(isActive = false) }
                 tabList.add(
@@ -287,8 +273,8 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
             tabList.add(
                     TabItem(
                             id = UUID.randomUUID().toString(),
-                            title = "Pingo",
-                            url = START_PAGE_URL,
+                            title = "Google",
+                            url = "https://www.google.com",
                             isActive = true
                     )
             )
@@ -433,7 +419,11 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
     val activeTab =
             tabs.find { it.isActive }
                     ?: tabs.firstOrNull()
-                            ?: TabItem(id = "loading", title = "Pingo", url = START_PAGE_URL)
+                            ?: TabItem(
+                            id = "loading",
+                            title = "Google",
+                            url = "https://www.google.com"
+                    )
 
     fun persistTabs() {
         val dataSet =
@@ -476,12 +466,7 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
     }
 
     fun addToHistory(title: String, url: String) {
-        if (url.isBlank() ||
-                        url == "about:blank" ||
-                        url == START_PAGE_URL ||
-                        url.startsWith("javascript:")
-        )
-                return
+        if (url.isBlank() || url == "about:blank" || url.startsWith("javascript:")) return
 
         val lastItem = historyItems.firstOrNull()
         val now = System.currentTimeMillis()
@@ -687,13 +672,44 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
     val screenHeightPx = with(density) { config.screenHeightDp.dp.toPx() }
     val statusBarPaddingPx = with(density) { statusBarPadding.toPx() }
     val navBarPaddingPx = with(density) { navBarPadding.toPx() }
-    val navBarHeightPx = with(density) { 72.dp.toPx() }
 
-    val topPos = statusBarPaddingPx + with(density) { 15.dp.toPx() }
-    val bottomPos =
-            screenHeightPx - navBarPaddingPx - navBarHeightPx - with(density) { 16.dp.toPx() }
-    val offScreenPos = screenHeightPx + navBarHeightPx
-    val topOffScreenPos = -navBarHeightPx
+    // --- UI POSITIONING CALCULATIONS (Bottom-Aligned) ---
+
+    // Constants extracted for clarity
+    val defaultBottomPadding = 16.dp
+    val navBarHeightDp = 72.dp
+    val statusBarPaddingDp = statusBarPadding
+
+    // Pixel values
+    val defaultBottomPaddingPx = with(density) { defaultBottomPadding.toPx() }
+    val navBarHeightPx = with(density) { navBarHeightDp.toPx() }
+
+    // Base Calculation:
+    // NavBar is now aligned BottomCenter with navigationBarsPadding + 16.dp (defaultBottomPadding)
+    // Translation Y = 0 means it sits exactly at that bottom position.
+
+    val bottomPos = 0f
+
+    // To move it OFF SCREEN (Down):
+    // We need to push it down by its height + bottom padding + navbar inset
+    // Adding a bit more (e.g. 50px) ensures shadow is also hidden
+    val offScreenPos = navBarHeightPx + defaultBottomPaddingPx + navBarPaddingPx + 50f
+
+    // To move it to TOP (Swipe Up):
+    // Target Visual Top = StatusBar + 15dp
+    // Current Visual Layout Top (at bottomPos) = ScreenHeight - NavInset - BottomPadding -
+    // NavBarHeight
+    // Translation Required = TargetVisualTop - CurrentVisualLayoutTop
+    // Result will be negative (moving up)
+
+    val targetVisualTopPx = statusBarPaddingPx + with(density) { 15.dp.toPx() }
+    val currentVisualLayoutTopPx =
+            screenHeightPx - navBarPaddingPx - defaultBottomPaddingPx - navBarHeightPx
+    val topPos = targetVisualTopPx - currentVisualLayoutTopPx
+
+    // To move it OFF SCREEN (Up - from Top position):
+    // Just move it up by another header height
+    val topOffScreenPos = topPos - navBarHeightPx
 
     LaunchedEffect(Unit) {
         delay(500)
@@ -793,111 +809,94 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                                             translationX = if (isCurrent) 0f else 10000f
                                         }
                         ) {
-                            if (tab.url == START_PAGE_URL) {
-                                StartPage(
-                                        bookmarks = bookmarkItems,
-                                        onQuickAccessClick = { url ->
-                                            // Navigate to the clicked URL
-                                            val idx = tabs.indexOfFirst { it.id == tab.id }
-                                            if (idx >= 0) {
-                                                tabs[idx] =
-                                                        tabs[idx].copy(url = url, isLoading = true)
-                                                persistTabs()
-                                            }
+                            PullToRefreshWebView(
+                                    modifier = Modifier.fillMaxSize(),
+                                    url = tab.url,
+                                    savedState = webViewStateBundles[tab.id],
+                                    onUrlChange = { url ->
+                                        val idx = tabs.indexOfFirst { it.id == tab.id }
+                                        if (idx >= 0) {
+                                            tabs[idx] = tabs[idx].copy(url = url)
+                                            persistTabs()
                                         }
-                                )
-                            } else {
-                                PullToRefreshWebView(
-                                        modifier = Modifier.fillMaxSize(),
-                                        url = tab.url,
-                                        savedState = webViewStateBundles[tab.id],
-                                        onUrlChange = { url ->
-                                            val idx = tabs.indexOfFirst { it.id == tab.id }
-                                            if (idx >= 0) {
-                                                tabs[idx] = tabs[idx].copy(url = url)
-                                                persistTabs()
-                                            }
-                                        },
-                                        onTitleChange = { title ->
-                                            val idx = tabs.indexOfFirst { it.id == tab.id }
-                                            if (idx >= 0) {
-                                                tabs[idx] = tabs[idx].copy(title = title)
-                                                persistTabs()
-                                                addToHistory(title, tabs[idx].url)
-                                            }
-                                        },
-                                        onLoadingChange = { loading ->
-                                            val idx = tabs.indexOfFirst { it.id == tab.id }
-                                            if (idx >= 0) {
-                                                tabs[idx] = tabs[idx].copy(isLoading = loading)
-                                                if (!loading) {
-                                                    updateTabThumbnail(tab.id)
-                                                    addToHistory(tabs[idx].title, tabs[idx].url)
-                                                    // SAVE WEBVIEW STATE TO DISK
-                                                    webViewInstances[tab.id]?.let {
-                                                        saveWebViewStateToDisk(tab.id, it)
-                                                    }
+                                    },
+                                    onTitleChange = { title ->
+                                        val idx = tabs.indexOfFirst { it.id == tab.id }
+                                        if (idx >= 0) {
+                                            tabs[idx] = tabs[idx].copy(title = title)
+                                            persistTabs()
+                                            addToHistory(title, tabs[idx].url)
+                                        }
+                                    },
+                                    onLoadingChange = { loading ->
+                                        val idx = tabs.indexOfFirst { it.id == tab.id }
+                                        if (idx >= 0) {
+                                            tabs[idx] = tabs[idx].copy(isLoading = loading)
+                                            if (!loading) {
+                                                updateTabThumbnail(tab.id)
+                                                addToHistory(tabs[idx].title, tabs[idx].url)
+                                                // SAVE WEBVIEW STATE TO DISK
+                                                webViewInstances[tab.id]?.let {
+                                                    saveWebViewStateToDisk(tab.id, it)
                                                 }
                                             }
-                                        },
-                                        onProgressChange = { progress ->
-                                            val idx = tabs.indexOfFirst { it.id == tab.id }
-                                            if (idx >= 0) {
-                                                tabs[idx] = tabs[idx].copy(progress = progress)
-                                            }
-                                        },
-                                        onCanGoBackChange = { canBack ->
-                                            val idx = tabs.indexOfFirst { it.id == tab.id }
-                                            if (idx >= 0) {
-                                                tabs[idx] = tabs[idx].copy(canGoBack = canBack)
-                                            }
-                                        },
-                                        onCanGoForwardChange = { canForward ->
-                                            val idx = tabs.indexOfFirst { it.id == tab.id }
-                                            if (idx >= 0) {
-                                                tabs[idx] =
-                                                        tabs[idx].copy(canGoForward = canForward)
-                                            }
-                                        },
-                                        onScrollDirectionChange = { direction ->
-                                            if (tab.isActive &&
-                                                            !isUrlEditingMode &&
-                                                            !showMenu &&
-                                                            !isAppStarting &&
-                                                            !isAiModeActive &&
-                                                            !tab.isLoading
-                                            ) {
-                                                isNavBarCollapsed =
-                                                        (direction == ScrollDirection.DOWN)
-                                            }
-                                        },
-                                        onContentExtracted = { jsonContent ->
-                                            if (tab.isActive) {
-                                                val pageContent =
-                                                        WebContentParser.parseFromJson(jsonContent)
-                                                if (pageContent != null) {
-                                                    val markdown =
-                                                            WebContentParser.toMarkdown(pageContent)
-                                                    aiViewModel.setPageContext(markdown)
-                                                }
-                                            }
-                                        },
-                                        onDownloadStart = { url, ua, cd, mime, len ->
-                                            handleDownload(url, ua, cd, mime, len)
-                                        },
-                                        isDarkTheme =
-                                                when (currentTheme) {
-                                                    "light" -> false
-                                                    "dark" -> true
-                                                    else -> isSystemInDarkTheme()
-                                                },
-                                        webViewRef = { wv ->
-                                            if (webViewInstances[tab.id] == null) {
-                                                webViewInstances[tab.id] = wv
+                                        }
+                                    },
+                                    onProgressChange = { progress ->
+                                        val idx = tabs.indexOfFirst { it.id == tab.id }
+                                        if (idx >= 0) {
+                                            tabs[idx] = tabs[idx].copy(progress = progress)
+                                        }
+                                    },
+                                    onCanGoBackChange = { canBack ->
+                                        val idx = tabs.indexOfFirst { it.id == tab.id }
+                                        if (idx >= 0) {
+                                            tabs[idx] = tabs[idx].copy(canGoBack = canBack)
+                                        }
+                                    },
+                                    onCanGoForwardChange = { canForward ->
+                                        val idx = tabs.indexOfFirst { it.id == tab.id }
+                                        if (idx >= 0) {
+                                            tabs[idx] = tabs[idx].copy(canGoForward = canForward)
+                                        }
+                                    },
+                                    onScrollDirectionChange = { direction ->
+                                        if (tab.isActive &&
+                                                        !isUrlEditingMode &&
+                                                        !showMenu &&
+                                                        !isAppStarting &&
+                                                        !isAiModeActive &&
+                                                        !tab.isLoading
+                                        ) {
+                                            isNavBarCollapsed = (direction == ScrollDirection.DOWN)
+                                        }
+                                    },
+                                    onContentExtracted = { jsonContent ->
+                                        if (tab.isActive) {
+                                            val pageContent =
+                                                    WebContentParser.parseFromJson(jsonContent)
+                                            if (pageContent != null) {
+                                                val markdown =
+                                                        WebContentParser.toMarkdown(pageContent)
+                                                aiViewModel.setPageContext(markdown)
                                             }
                                         }
-                                )
-                            }
+                                    },
+                                    onDownloadStart = { url, ua, cd, mime, len ->
+                                        handleDownload(url, ua, cd, mime, len)
+                                    },
+                                    isDarkTheme =
+                                            when (currentTheme) {
+                                                "light" -> false
+                                                "dark" -> true
+                                                else -> isSystemInDarkTheme()
+                                            },
+                                    webViewRef = { wv ->
+                                        if (webViewInstances[tab.id] == null) {
+                                            webViewInstances[tab.id] = wv
+                                        }
+                                    }
+                            )
                         }
                     }
                 }
@@ -1017,14 +1016,42 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
 
             NavBar(
                     modifier =
-                            Modifier.align(Alignment.TopCenter).graphicsLayer {
-                                // Calculate ime offset inside graphicsLayer to avoid recomposition
-                                val imeBottom = imeInsets.getBottom(density).toFloat()
-                                val imeOffset =
-                                        if (imeBottom > 0) imeBottom - navBarPaddingPx else 0f
-                                translationY = animatedY - imeOffset
-                            },
-                    currentUrl = if (activeTab.url == START_PAGE_URL) "Pingo" else activeTab.url,
+                            Modifier.align(Alignment.BottomCenter)
+                                    .navigationBarsPadding()
+                                    .padding(bottom = defaultBottomPadding)
+                                    .graphicsLayer {
+                                        // Keyboard (IME) Offset Logic
+                                        // When keyboard opens, we need to push the NavBar UP.
+                                        // imeInsets gives us the pixels the keyboard occupies from
+                                        // bottom.
+                                        // Since we are now bottom-aligned, we can simply subtract
+                                        // the IME height
+                                        // from our translationY (which moves it UP).
+
+                                        // Note: navigationBarsPadding() already handles the system
+                                        // nav bar.
+                                        // But IME insets usually include nav bar height.
+                                        // To avoid double padding, we just take the max or diff
+                                        // effectively.
+
+                                        val imeHeight = imeInsets.getBottom(density).toFloat()
+
+                                        // Only apply offset if IME is actually showing (height >
+                                        // navBarPadding)
+                                        val imeOffsetVar =
+                                                if (imeHeight > navBarPaddingPx) {
+                                                    imeHeight - navBarPaddingPx
+                                                } else {
+                                                    0f
+                                                }
+
+                                        // animatedY is our standard state translation (Top vs
+                                        // Bottom vs Hidden)
+                                        // We subtract imeOffsetVar to push it UP when keyboard
+                                        // shows.
+                                        translationY = animatedY - imeOffsetVar
+                                    },
+                    currentUrl = activeTab.url,
                     isLoading = activeTab.isLoading,
                     loadingProgress = activeTab.progress,
                     canGoBack = activeTab.canGoBack,
@@ -1045,13 +1072,7 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                         }
                     },
                     onMenuToggle = { showMenu = !showMenu },
-                    onRefresh = {
-                        if (activeTab.url == START_PAGE_URL) {
-                            // No refresh for start page for now
-                        } else {
-                            webViewInstances[activeTab.id]?.reload()
-                        }
-                    },
+                    onRefresh = { webViewInstances[activeTab.id]?.reload() },
                     onForward = {
                         webViewInstances[activeTab.id]?.let {
                             // Immediately show loader before navigation
@@ -1140,31 +1161,7 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                     },
                     onStartupStartPage = {
                         startupBehavior = "start_page"
-                        sharedPrefs.edit().putString("startup_behavior", "start_page").apply()
-
-                        // Menambahkan TAB BARU untuk Halaman Mulai, bukan mengganti yang sudah ada
-                        updateTabThumbnail(activeTab.id)
-                        tabs.forEachIndexed { index, tab ->
-                            tabs[index] = tab.copy(isActive = false)
-                        }
-                        tabs.add(
-                                TabItem(
-                                        id = UUID.randomUUID().toString(),
-                                        title = "Pingo",
-                                        url = START_PAGE_URL,
-                                        isActive = true
-                                )
-                        )
-                        persistTabs()
-                    },
-                    onWallpaperClicked = { /* TODO: Implement wallpaper picker */},
-                    onSpeedDialsToggle = {
-                        val currentValue = sharedPrefs.getBoolean("show_speed_dials", true)
-                        sharedPrefs.edit().putBoolean("show_speed_dials", !currentValue).apply()
-                    },
-                    onRecommendationsToggle = {
-                        val currentValue = sharedPrefs.getBoolean("show_recommendations", true)
-                        sharedPrefs.edit().putBoolean("show_recommendations", !currentValue).apply()
+                        // Start page option removed - this callback should not be called
                     },
                     // Privacy submenu callbacks
                     onAdBlockerToggle = {
@@ -1196,7 +1193,7 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
 
         if (isUrlEditingMode) {
             UrlEditingOverlay(
-                    currentUrl = if (activeTab.url == START_PAGE_URL) "" else activeTab.url,
+                    currentUrl = activeTab.url,
                     isLoading = activeTab.isLoading,
                     isVisible = isUrlEditingMode,
                     statusBarHeight = statusBarPaddingPx,
@@ -1245,8 +1242,8 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                         tabs.add(
                                 TabItem(
                                         id = newId,
-                                        title = "Pingo",
-                                        url = START_PAGE_URL,
+                                        title = "Google",
+                                        url = "https://www.google.com",
                                         isActive = true
                                 )
                         )
@@ -1264,8 +1261,8 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                     tabs.add(
                             TabItem(
                                     id = newId,
-                                    title = "Pingo",
-                                    url = START_PAGE_URL,
+                                    title = "Google",
+                                    url = "https://www.google.com",
                                     isActive = true
                             )
                     )

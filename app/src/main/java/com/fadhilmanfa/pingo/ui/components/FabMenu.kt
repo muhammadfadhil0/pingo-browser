@@ -52,7 +52,6 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Layers
-import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.OpenInBrowser
 import androidx.compose.material.icons.rounded.Palette
@@ -65,8 +64,6 @@ import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Smartphone
-import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -192,9 +189,6 @@ fun FabMenuOverlay(
         onStartupNewPage: () -> Unit = {},
         onStartupContinue: () -> Unit = {},
         onStartupStartPage: () -> Unit = {},
-        onWallpaperClicked: () -> Unit = {},
-        onSpeedDialsToggle: () -> Unit = {},
-        onRecommendationsToggle: () -> Unit = {},
         // Privacy submenu callbacks
         onAdBlockerToggle: () -> Unit = {},
         onSafeBrowsingToggle: () -> Unit = {},
@@ -300,9 +294,6 @@ fun FabMenuOverlay(
         val startupContinueLabel = stringResource(R.string.startup_continue_where_left)
         val startupStartPageLabel = stringResource(R.string.startup_open_start_page)
         val activeLabel = stringResource(R.string.status_aktif)
-        val wallpaperLabel = stringResource(R.string.start_page_wallpaper)
-        val speedDialsLabel = stringResource(R.string.start_page_speed_dials)
-        val recommendationsLabel = stringResource(R.string.start_page_recommendations)
 
         // Privacy menu labels
         val adBlockerLabel = stringResource(R.string.privacy_ad_blocker)
@@ -562,30 +553,6 @@ fun FabMenuOverlay(
                                 Icons.Rounded.PlayArrow,
                                 startupLabel,
                                 { currentMenu = 12 } // Go to startup submenu
-                        ),
-                        FabMenuItem(
-                                Icons.Rounded.Wallpaper,
-                                wallpaperLabel,
-                                {
-                                        onWallpaperClicked()
-                                        onToggle()
-                                }
-                        ),
-                        FabMenuItem(
-                                Icons.Rounded.Star,
-                                speedDialsLabel,
-                                {
-                                        onSpeedDialsToggle()
-                                        onToggle()
-                                }
-                        ),
-                        FabMenuItem(
-                                Icons.Rounded.Link,
-                                recommendationsLabel,
-                                {
-                                        onRecommendationsToggle()
-                                        onToggle()
-                                }
                         )
                 )
 
@@ -837,16 +804,6 @@ fun FabMenuOverlay(
                                         onToggle()
                                 },
                                 isActive = startupBehavior == "continue",
-                                activeLabel = activeLabel
-                        ),
-                        FabMenuItemWithActive(
-                                Icons.Rounded.Home,
-                                startupStartPageLabel,
-                                {
-                                        onStartupStartPage()
-                                        onToggle()
-                                },
-                                isActive = startupBehavior == "start_page",
                                 activeLabel = activeLabel
                         )
                 )

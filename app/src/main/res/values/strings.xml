@@ -41,7 +41,7 @@
     <string name="msg_default_browser_already">Pingo sudah menjadi browser default</string>
     
     <!-- AI Bar Strings -->
-    <string name="ai_placeholder">Tanyakan tentang halaman ini</string>
+    <string name="ai_placeholder">Tanyakan halaman ini</string>
     <string name="ai_processing">Memproses jawaban Anda...</string>
     <string name="ai_suggest_summarize">Ringkaskan</string>
     <string name="ai_suggest_summarize_prompt">Ringkaskan halaman ini</string>
