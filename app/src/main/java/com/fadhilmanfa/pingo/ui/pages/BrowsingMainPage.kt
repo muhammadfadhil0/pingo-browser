@@ -224,6 +224,12 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
     var uiAlpha by remember { mutableFloatStateOf(0f) }
     var isAppStarting by remember { mutableStateOf(true) }
 
+    val adBlockManager = remember {
+        com.fadhilmanfa.pingo.data.adblock.AdBlockManager.getInstance(context)
+    }
+    var adBlockerActive by remember { mutableStateOf(adBlockManager.isEnabled) }
+    var adBlockerStrength by remember { mutableStateOf(adBlockManager.strength.key) }
+
     val tabs = remember {
         val savedTabs = sharedPrefs.getStringSet("saved_tabs_data", null)
         val tabList = mutableStateListOf<TabItem>()
@@ -1164,12 +1170,25 @@ fun BrowsingMainPage(currentTheme: String = "system", onThemeChanged: (String) -
                         // Start page option removed - this callback should not be called
                     },
                     // Privacy submenu callbacks
+                    adBlockerActive = adBlockerActive,
+                    adBlockerStrength = adBlockerStrength,
+                    onAdBlockerStatusChanged = { status ->
+                        adBlockerActive = status
+                        adBlockManager.isEnabled = status
+                    },
+                    onAdBlockerStrengthChanged = { strengthKey ->
+                        adBlockerStrength = strengthKey
+                        val strength =
+                                com.fadhilmanfa.pingo.data.adblock.AdBlockStrength.entries.find {
+                                    it.key == strengthKey
+                                }
+                                        ?: com.fadhilmanfa.pingo.data.adblock.AdBlockStrength.SEDANG
+                        adBlockManager.strength = strength
+                    },
                     onAdBlockerToggle = {
-                        val adBlockManager =
-                                com.fadhilmanfa.pingo.data.adblock.AdBlockManager.getInstance(
-                                        context
-                                )
-                        adBlockManager.isEnabled = !adBlockManager.isEnabled
+                        val newState = !adBlockManager.isEnabled
+                        adBlockManager.isEnabled = newState
+                        adBlockerActive = newState
                     },
                     onSafeBrowsingToggle = {
                         val currentValue = sharedPrefs.getBoolean("safe_browsing", true)

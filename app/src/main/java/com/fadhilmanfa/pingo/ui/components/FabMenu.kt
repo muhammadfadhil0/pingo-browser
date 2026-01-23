@@ -38,6 +38,8 @@ import androidx.compose.material.icons.rounded.AdsClick
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.Cancel
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Cookie
 import androidx.compose.material.icons.rounded.DarkMode
@@ -63,6 +65,7 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Smartphone
 import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.material3.Icon
@@ -191,6 +194,10 @@ fun FabMenuOverlay(
         onStartupStartPage: () -> Unit = {},
         // Privacy submenu callbacks
         onAdBlockerToggle: () -> Unit = {},
+        adBlockerActive: Boolean = true,
+        adBlockerStrength: String = "medium",
+        onAdBlockerStatusChanged: (Boolean) -> Unit = {},
+        onAdBlockerStrengthChanged: (String) -> Unit = {},
         onSafeBrowsingToggle: () -> Unit = {},
         onPreventPopupsToggle: () -> Unit = {},
         onSiteSettingsClicked: () -> Unit = {},
@@ -219,7 +226,8 @@ fun FabMenuOverlay(
         var currentMenu by remember {
                 mutableStateOf(0)
         } // 0=main, 1=settings, 2=general, 3=language, 4=appearance, 5=startpage, 6=privacy,
-        // 7=search, 8=notifications, 9=downloads, 10=help, 11=about, 12=startup
+        // 7=search, 8=notifications, 9=downloads, 10=help, 11=about, 12=startup, 13=adblocker,
+        // 14=adblocker_status, 15=adblocker_strength
 
         // Reset menu when fab is closed
         LaunchedEffect(expanded) {
@@ -244,6 +252,26 @@ fun FabMenuOverlay(
         // Startup label (needed before getMenuTitle)
         val startupLabel = stringResource(R.string.startup_on_startup)
 
+        // Privacy menu labels (Moved up for scope)
+        val adBlockerLabel = stringResource(R.string.privacy_ad_blocker)
+        val safeBrowsingLabel = stringResource(R.string.privacy_safe_browsing)
+        val preventPopupsLabel = stringResource(R.string.privacy_prevent_popups)
+        val siteSettingsLabel = stringResource(R.string.privacy_site_settings)
+        val cookiesLabel = stringResource(R.string.privacy_cookies)
+        val dnsLabel = stringResource(R.string.privacy_dns)
+        val clearOnExitLabel = stringResource(R.string.privacy_clear_on_exit)
+        val clearNextLabel = stringResource(R.string.privacy_clear_on_exit) // Not used?
+        val clearDataLabel = stringResource(R.string.privacy_clear_data)
+
+        // Ad Blocker submenu labels
+        val adBlockerStatusLabel = stringResource(R.string.adblock_status)
+        val adBlockerStrengthLabel = stringResource(R.string.adblock_strength)
+        val strengthLightLabel = stringResource(R.string.strength_light)
+        val strengthMediumLabel = stringResource(R.string.strength_medium)
+        val strengthStrongLabel = stringResource(R.string.strength_strong)
+        val activeStatusLabel = stringResource(R.string.status_active)
+        val inactiveStatusLabel = stringResource(R.string.status_inactive)
+
         // Menu titles for header display (localized)
         fun getMenuTitle(menu: Int): String? {
                 return when (menu) {
@@ -260,6 +288,9 @@ fun FabMenuOverlay(
                         10 -> helpLabel
                         11 -> aboutLabel
                         12 -> startupLabel
+                        13 -> adBlockerLabel
+                        14 -> adBlockerStatusLabel
+                        15 -> adBlockerStrengthLabel
                         else -> null
                 }
         }
@@ -296,14 +327,6 @@ fun FabMenuOverlay(
         val activeLabel = stringResource(R.string.status_aktif)
 
         // Privacy menu labels
-        val adBlockerLabel = stringResource(R.string.privacy_ad_blocker)
-        val safeBrowsingLabel = stringResource(R.string.privacy_safe_browsing)
-        val preventPopupsLabel = stringResource(R.string.privacy_prevent_popups)
-        val siteSettingsLabel = stringResource(R.string.privacy_site_settings)
-        val cookiesLabel = stringResource(R.string.privacy_cookies)
-        val dnsLabel = stringResource(R.string.privacy_dns)
-        val clearOnExitLabel = stringResource(R.string.privacy_clear_on_exit)
-        val clearDataLabel = stringResource(R.string.privacy_clear_data)
 
         // Search menu labels
         val searchEngineLabel = stringResource(R.string.search_engine)
@@ -568,8 +591,7 @@ fun FabMenuOverlay(
                                 Icons.Rounded.AdsClick,
                                 adBlockerLabel,
                                 {
-                                        onAdBlockerToggle()
-                                        onToggle()
+                                        currentMenu = 13 // Go to Ad Blocker submenu
                                 }
                         ),
                         FabMenuItem(
@@ -808,6 +830,103 @@ fun FabMenuOverlay(
                         )
                 )
 
+        // Ad Blocker submenu items (menu 13)
+        val adBlockerMenuItems =
+                listOf(
+                        FabMenuItemWithActive(
+                                Icons.AutoMirrored.Rounded.ArrowBack,
+                                backLabel,
+                                { currentMenu = 6 }, // Back to privacy menu
+                                isActive = false
+                        ),
+                        FabMenuItemWithActive(
+                                Icons.Rounded.AdsClick,
+                                adBlockerStatusLabel,
+                                { currentMenu = 14 },
+                                isActive = false
+                        ),
+                        FabMenuItemWithActive(
+                                Icons.Rounded.Security,
+                                adBlockerStrengthLabel,
+                                { currentMenu = 15 },
+                                isActive = false
+                        )
+                )
+
+        // Ad Blocker Status submenu items (menu 14)
+        val adBlockerStatusMenuItems =
+                listOf(
+                        FabMenuItemWithActive(
+                                Icons.AutoMirrored.Rounded.ArrowBack,
+                                backLabel,
+                                { currentMenu = 13 }, // Back to ad blocker menu
+                                isActive = false
+                        ),
+                        FabMenuItemWithActive(
+                                Icons.Rounded.CheckCircle,
+                                activeStatusLabel,
+                                {
+                                        onAdBlockerStatusChanged(true)
+                                        // Update toggle fallback if needed or assume parent handles
+                                        // it
+                                        onToggle()
+                                },
+                                isActive = adBlockerActive,
+                                activeLabel = activeLabel
+                        ),
+                        FabMenuItemWithActive(
+                                Icons.Rounded.Cancel,
+                                inactiveStatusLabel,
+                                {
+                                        onAdBlockerStatusChanged(false)
+                                        onToggle()
+                                },
+                                isActive = !adBlockerActive,
+                                activeLabel = activeLabel
+                        )
+                )
+
+        // Ad Blocker Strength submenu items (menu 15)
+        val adBlockerStrengthMenuItems =
+                listOf(
+                        FabMenuItemWithActive(
+                                Icons.AutoMirrored.Rounded.ArrowBack,
+                                backLabel,
+                                { currentMenu = 13 }, // Back to ad blocker menu
+                                isActive = false
+                        ),
+                        FabMenuItemWithActive(
+                                Icons.Rounded.Shield, // Use Shield or Security
+                                strengthLightLabel,
+                                {
+                                        onAdBlockerStrengthChanged("ringan")
+                                        onToggle()
+                                },
+                                isActive = adBlockerStrength == "ringan",
+                                activeLabel = activeLabel
+                        ),
+                        FabMenuItemWithActive(
+                                Icons.Rounded.Shield,
+                                strengthMediumLabel,
+                                {
+                                        onAdBlockerStrengthChanged("sedang")
+                                        onToggle()
+                                },
+                                isActive = adBlockerStrength == "sedang",
+                                activeLabel = activeLabel
+                        ),
+                        FabMenuItemWithActive(
+                                Icons.Rounded.Shield,
+                                strengthStrongLabel,
+                                {
+                                        onAdBlockerStrengthChanged("kuat")
+                                        onToggle()
+                                },
+                                isActive = adBlockerStrength == "kuat",
+                                activeLabel = activeLabel
+                        )
+                )
+
         // Get current menu items based on state
         fun getMenuItems(menu: Int): List<FabMenuItem> {
                 return when (menu) {
@@ -824,6 +943,9 @@ fun FabMenuOverlay(
                         10 -> helpMenuItems
                         11 -> aboutMenuItems
                         12 -> startupMenuItems.map { it.toFabMenuItem() }
+                        13 -> adBlockerMenuItems.map { it.toFabMenuItem() }
+                        14 -> adBlockerStatusMenuItems.map { it.toFabMenuItem() }
+                        15 -> adBlockerStrengthMenuItems.map { it.toFabMenuItem() }
                         else -> mainMenuItems
                 }
         }
@@ -882,11 +1004,19 @@ fun FabMenuOverlay(
         val displayedMenuItems = getMenuItems(displayedMenuState)
         val finalMenuItems = if (isAtTop) displayedMenuItems.reversed() else displayedMenuItems
 
-        // For menu 12, also get the active state items
-        val displayedStartupItems =
-                if (displayedMenuState == 12) {
-                        if (isAtTop) startupMenuItems.reversed() else startupMenuItems
-                } else emptyList()
+        // For menu 12, 13, 14, 15 also get the active state items
+        val displayedActiveItems =
+                when (displayedMenuState) {
+                        12 -> if (isAtTop) startupMenuItems.reversed() else startupMenuItems
+                        13 -> if (isAtTop) adBlockerMenuItems.reversed() else adBlockerMenuItems
+                        14 ->
+                                if (isAtTop) adBlockerStatusMenuItems.reversed()
+                                else adBlockerStatusMenuItems
+                        15 ->
+                                if (isAtTop) adBlockerStrengthMenuItems.reversed()
+                                else adBlockerStrengthMenuItems
+                        else -> emptyList()
+                }
 
         Box(
                 modifier = modifier.fillMaxSize(),
@@ -902,9 +1032,9 @@ fun FabMenuOverlay(
                         horizontalAlignment = Alignment.End,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                        if (displayedMenuState == 12) {
-                                // Render startup menu with active state
-                                displayedStartupItems.forEachIndexed { index, item ->
+                        if (displayedActiveItems.isNotEmpty()) {
+                                // Render active menus (12, 13, 14, 15)
+                                displayedActiveItems.forEachIndexed { index, item ->
                                         AnimatedVisibility(
                                                 visible = expanded && index in visibleItems,
                                                 enter =

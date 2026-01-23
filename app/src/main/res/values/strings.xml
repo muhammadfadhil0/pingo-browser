@@ -112,6 +112,13 @@
     <string name="privacy_clear_on_exit">Hapus Data Saat Keluar</string>
     <string name="privacy_clear_data">Hapus Data Jelajah</string>
     
+    <!-- Ad Blocker Submenu Strings -->
+    <string name="adblock_status">Status</string>
+    <string name="adblock_strength">Kekuatan Pemblokir</string>
+    <string name="strength_light">Ringan</string>
+    <string name="strength_medium">Sedang</string>
+    <string name="strength_strong">Kuat</string>
+    
     <!-- Search Submenu Strings -->
     <string name="search_engine">Mesin Pencari</string>
     <string name="search_pingo_ai">Pingo AI</string>

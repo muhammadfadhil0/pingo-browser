@@ -110,6 +110,13 @@
     <string name="privacy_dns">DNS</string>
     <string name="privacy_clear_on_exit">Clear Data on Exit</string>
     <string name="privacy_clear_data">Clear Browsing Data</string>
+
+<!--    Ads bloking strings -->
+    <string name="adblock_status">Status</string>
+    <string name="adblock_strength">Blocker Strength</string>
+    <string name="strength_light">Light</string>
+    <string name="strength_medium">Medium</string>
+    <string name="strength_strong">Strong</string>
     
     <!-- Search Submenu Strings -->
     <string name="search_engine">Search Engine</string>
